@@ -135,7 +135,7 @@ export function drawMenu(
 
   ctx.font = `${Math.max(11, Math.round(height * 0.026))}px "JetBrains Mono", monospace`;
   ctx.fillStyle = COL_SUBTITLE;
-  ctx.fillText('POINT WITH YOUR RIGHT INDEX FINGER · HOLD TO SELECT', width / 2, height * 0.29);
+  ctx.fillText('POINT WITH YOUR LEFT INDEX FINGER · HOLD TO SELECT', width / 2, height * 0.29);
 
   // tracking-ready indicator, left-aligned under the subtitle
   const dotX = width / 2 - 148;
