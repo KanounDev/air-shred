@@ -1,103 +1,159 @@
 import {
   NOTE_NAMES,
   OCTAVE_BASE,
+  OCTAVE_COUNT,
   PIANO_BLACK_AFTER_WHITE_IDX,
-  PIANO_BLACK_H,
+  PIANO_BLACK_KEY_HEIGHT_RATIO,
+  PIANO_BLACK_KEY_WIDTH_RATIO,
   PIANO_BLACK_SEMITONES,
-  PIANO_MARGIN_X,
-  PIANO_TOP_Y,
-  PIANO_WHITE_H,
+  PIANO_MIN_WHITE_KEY_PX,
   PIANO_WHITE_SEMITONES,
 } from '../core/constants';
 import type { GestureState } from '../hooks/useGestureSound';
 
-const COL_WHITE = '#d8d6c8'; // slightly warm off-white, not clinical bright-white
+const COL_WHITE = '#d8d6c8'; // warm off-white, not clinical bright-white
 const COL_BLACK = '#141311';
-const COL_BORDER = 'rgba(255, 255, 255, 0.18)';
+const COL_BORDER = 'rgba(255, 255, 255, 0.16)';
 const COL_HELD = '#39ff8f'; // steady highlight while a note is actively held
 const COL_FLASH = '#c9ffe4'; // brief brighter pulse right at the instant a note fires
 const COL_LABEL_LIGHT = '#0a0a0a';
 const COL_LABEL_DARK = '#f2f2f2';
+const COL_ACTIVE_BAND = 'rgba(255, 176, 32, 0.10)'; // amber wash behind the currently-latched octave
+const COL_ACTIVE_BAND_BORDER = 'rgba(255, 176, 32, 0.55)';
+const COL_OCTAVE_LABEL = 'rgba(255, 255, 255, 0.35)';
+const COL_MORE_HINT = 'rgba(255, 255, 255, 0.28)';
+
+const WHITE_PER_OCTAVE = PIANO_WHITE_SEMITONES.length; // 7
 
 /**
- * Draws a one-octave piano strip and highlights whichever key corresponds
- * to the currently-held left-hand note. Purely visual — reads gesture
- * state, doesn't affect input. Direct port of main.py's _draw_piano().
- *
- * The strip only has room for 12 keys (one octave), but you can actually
- * play across 4 octaves — so the ACTUAL octave is shown two ways: a label
- * above the strip, and the real octave number stamped on whichever key is
- * currently lit (e.g. "C4" not just "C").
+ * How many consecutive octaves to show, and where the window starts,
+ * given the canvas's actual pixel width. On a wide screen this returns
+ * the full OCTAVE_COUNT (the "see the whole instrument" view from before).
+ * On a narrow phone screen it shrinks the octave COUNT — never the key
+ * size below PIANO_MIN_WHITE_KEY_PX — and centers the window on whichever
+ * octave is currently latched, so as you gesture-change octaves the
+ * window slides to follow automatically. No manual scrolling/pinching:
+ * this app has no interaction that isn't a hand pose, so the piano can't
+ * ask for one either.
  */
+function computeVisibleWindow(canvasWidthPx: number, activeOctaveSelect: number) {
+  const maxOctavesThatFit = Math.floor(canvasWidthPx / (PIANO_MIN_WHITE_KEY_PX * WHITE_PER_OCTAVE));
+  const count = Math.min(OCTAVE_COUNT, Math.max(1, maxOctavesThatFit));
+
+  const activeIdx = activeOctaveSelect - 1; // 0-based
+  let start = activeIdx - Math.floor((count - 1) / 2);
+  start = Math.max(0, Math.min(OCTAVE_COUNT - count, start));
+
+  return { start, count };
+}
+
 export function drawPiano(
   ctx: CanvasRenderingContext2D,
   width: number,
-  _height: number,
+  height: number,
   state: GestureState,
   now: number,
 ): void {
-  const pianoW = width - 2 * PIANO_MARGIN_X;
-  const nWhite = PIANO_WHITE_SEMITONES.length;
-  const whiteW = pianoW / nWhite;
-
   const heldSemitone = state.heldSemitone;
-  const heldOctaveNum = OCTAVE_BASE + state.activeOctave - 1;
+  const heldOctaveSelect = state.activeOctave; // 1..OCTAVE_COUNT
   const isFlashing = state.lastNotePlayed !== null && now - state.lastNoteTime < 250;
 
+  const { start, count } = computeVisibleWindow(width, heldOctaveSelect);
+
+  const totalWhite = WHITE_PER_OCTAVE * count;
+  const whiteW = width / totalWhite;
+  const whiteH = height;
+  const blackW = whiteW * PIANO_BLACK_KEY_WIDTH_RATIO;
+  const blackH = height * PIANO_BLACK_KEY_HEIGHT_RATIO;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // --- active-octave band, drawn first so keys/labels sit on top --------
+  const activeWindowIdx = heldOctaveSelect - 1 - start; // position of the active octave WITHIN the visible window
+  const bandX0 = activeWindowIdx * WHITE_PER_OCTAVE * whiteW;
+  const bandW = WHITE_PER_OCTAVE * whiteW;
   ctx.save();
-  ctx.font = '13px "JetBrains Mono", monospace';
-  ctx.fillStyle = COL_LABEL_DARK;
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText(
-    `Octave ${state.activeOctave}  (playing octave ${heldOctaveNum})`,
-    PIANO_MARGIN_X,
-    PIANO_TOP_Y - 8,
-  );
+  ctx.fillStyle = COL_ACTIVE_BAND;
+  ctx.fillRect(bandX0, 0, bandW, height);
+  ctx.strokeStyle = COL_ACTIVE_BAND_BORDER;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bandX0 + 1, 1, bandW - 2, height - 2);
+  ctx.restore();
 
-  // white keys first (so black keys can be drawn on top of the seams)
-  const whiteRects: [number, number][] = [];
-  PIANO_WHITE_SEMITONES.forEach((semitone, i) => {
-    const x0 = PIANO_MARGIN_X + i * whiteW;
-    const x1 = PIANO_MARGIN_X + (i + 1) * whiteW;
-    whiteRects.push([x0, x1]);
+  // --- white keys ---------------------------------------------------------
+  // whiteRects[windowIdx][whiteIdx] -> [x0, x1], for locating black keys after.
+  const whiteRects: [number, number][][] = [];
+  for (let w = 0; w < count; w++) {
+    const oct = start + w;
+    const rects: [number, number][] = [];
+    PIANO_WHITE_SEMITONES.forEach((semitone, i) => {
+      const globalIdx = w * WHITE_PER_OCTAVE + i;
+      const x0 = globalIdx * whiteW;
+      const x1 = x0 + whiteW;
+      rects.push([x0, x1]);
 
-    let color: string = COL_WHITE;
-    if (semitone === heldSemitone) color = isFlashing ? COL_FLASH : COL_HELD;
+      const isHeld = semitone === heldSemitone && oct === heldOctaveSelect - 1;
+      ctx.fillStyle = isHeld ? (isFlashing ? COL_FLASH : COL_HELD) : COL_WHITE;
+      ctx.fillRect(x0, 0, x1 - x0, whiteH);
+      ctx.strokeStyle = COL_BORDER;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x0, 0, x1 - x0, whiteH);
 
-    ctx.fillStyle = color;
-    ctx.fillRect(x0, PIANO_TOP_Y, x1 - x0, PIANO_WHITE_H);
-    ctx.strokeStyle = COL_BORDER;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x0, PIANO_TOP_Y, x1 - x0, PIANO_WHITE_H);
+      const label = isHeld ? `${NOTE_NAMES[semitone]}${OCTAVE_BASE + oct}` : NOTE_NAMES[semitone];
+      ctx.fillStyle = COL_LABEL_LIGHT;
+      ctx.font = `${Math.max(9, Math.round(whiteW * 0.22))}px "JetBrains Mono", monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x0 + whiteW / 2, whiteH - Math.max(6, whiteH * 0.08));
+    });
+    whiteRects.push(rects);
+  }
 
-    let label: string = NOTE_NAMES[semitone];
-    if (semitone === heldSemitone) label = `${label}${heldOctaveNum}`; // show the real octave on the active key
-    ctx.fillStyle = COL_LABEL_LIGHT;
-    ctx.font = '11px "JetBrains Mono", monospace';
-    ctx.fillText(label, x0 + 6, PIANO_TOP_Y + PIANO_WHITE_H - 8);
-  });
+  // --- octave number, centered above each visible octave's white keys ----
+  ctx.fillStyle = COL_OCTAVE_LABEL;
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  for (let w = 0; w < count; w++) {
+    const oct = start + w;
+    const cx = w * WHITE_PER_OCTAVE * whiteW + bandW / 2;
+    ctx.fillText(`OCT ${oct + 1}`, cx, 12);
+  }
 
-  // black keys on top, centered on the seam after their white key
-  const blackW = whiteW * 0.55;
-  for (const semitone of PIANO_BLACK_SEMITONES) {
-    const whiteIdx = PIANO_BLACK_AFTER_WHITE_IDX[semitone];
-    const seamX = whiteRects[whiteIdx][1];
-    const x0 = seamX - blackW / 2;
-    const x1 = seamX + blackW / 2;
+  // --- black keys on top, centered on the seam after their white key -----
+  for (let w = 0; w < count; w++) {
+    const oct = start + w;
+    for (const semitone of PIANO_BLACK_SEMITONES) {
+      const whiteIdx = PIANO_BLACK_AFTER_WHITE_IDX[semitone];
+      const seamX = whiteRects[w][whiteIdx][1];
+      const x0 = seamX - blackW / 2;
+      const x1 = seamX + blackW / 2;
 
-    let color: string = COL_BLACK;
-    if (semitone === heldSemitone) color = isFlashing ? COL_FLASH : COL_HELD;
+      const isHeld = semitone === heldSemitone && oct === heldOctaveSelect - 1;
+      const color = isHeld ? (isFlashing ? COL_FLASH : COL_HELD) : COL_BLACK;
+      ctx.fillStyle = color;
+      ctx.fillRect(x0, 0, x1 - x0, blackH);
+      ctx.strokeStyle = COL_BORDER;
+      ctx.strokeRect(x0, 0, x1 - x0, blackH);
 
-    ctx.fillStyle = color;
-    ctx.fillRect(x0, PIANO_TOP_Y, x1 - x0, PIANO_BLACK_H);
-    ctx.strokeStyle = COL_BORDER;
-    ctx.strokeRect(x0, PIANO_TOP_Y, x1 - x0, PIANO_BLACK_H);
-
-    if (semitone === heldSemitone) {
-      ctx.fillStyle = color === COL_HELD ? COL_LABEL_DARK : COL_LABEL_LIGHT;
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.fillText(`${NOTE_NAMES[semitone]}${heldOctaveNum}`, x0 - 2, PIANO_TOP_Y + PIANO_BLACK_H - 6);
+      if (isHeld) {
+        ctx.fillStyle = color === COL_HELD ? COL_LABEL_DARK : COL_LABEL_LIGHT;
+        ctx.font = `${Math.max(8, Math.round(blackW * 0.28))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`${NOTE_NAMES[semitone]}${OCTAVE_BASE + oct}`, seamX, blackH - Math.max(5, blackH * 0.1));
+      }
     }
   }
-  ctx.restore();
+
+  // --- dim "more octaves this way" hints when the window doesn't cover
+  // the full range, so a narrow screen doesn't silently hide octaves
+  // without any indication they exist. ------------------------------------
+  ctx.fillStyle = COL_MORE_HINT;
+  ctx.font = `${Math.max(11, Math.round(height * 0.22))}px "JetBrains Mono", monospace`;
+  if (start > 0) {
+    ctx.textAlign = 'left';
+    ctx.fillText('‹', 4, height / 2 + 4);
+  }
+  if (start + count < OCTAVE_COUNT) {
+    ctx.textAlign = 'right';
+    ctx.fillText('›', width - 4, height / 2 + 4);
+  }
 }

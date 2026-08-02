@@ -126,8 +126,7 @@ body {
   pointer-events: none;
 }
 
-.camera-canvas,
-.piano-canvas {
+.camera-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -135,7 +134,12 @@ body {
   display: block;
 }
 
-.piano-canvas {
+.overlay-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
   pointer-events: none;
 }
 
@@ -254,6 +258,45 @@ body {
 .status-item--frametime {
   margin-left: auto;
   color: var(--text-dim);
+}
+
+/* ---- piano strip (lives below the camera stage, not overlaid on it) --- */
+.piano-wrap {
+  width: min(960px, 94vw);
+}
+
+.piano-strip {
+  position: relative;
+  width: 100%;
+  height: 96px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 16px 32px -18px rgba(0, 0, 0, 0.75),
+    0 0 30px -14px rgba(255, 176, 32, 0.12);
+}
+
+.piano-strip-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 520px) {
+  .piano-strip {
+    height: 78px;
+  }
+}
+
+.training-hint {
+  margin: 8px 0 0;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.03em;
 }
 
 /* ---- reduced motion --------------------------------------------------- */
