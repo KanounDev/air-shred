@@ -1,0 +1,277 @@
+/* =========================================================================
+   DESIGN TOKENS
+   Palette: warm-black stage (#0b0a09 / #141210), CV-HUD neon green
+   (#39ff8f) for the note/left-hand channel, amber (#ffb020) for the
+   octave/right-hand channel, and a low, smoldering red (#ff2f3a) used only
+   for accents/glow — the "metal gig" half of the brief — never as body text.
+   Display face: Metal Mania (a real metal-poster face) used sparingly for
+   the title only. Everything else is JetBrains Mono, terminal-style.
+   ========================================================================= */
+:root {
+  --bg-void: #0b0a09;
+  --bg-panel: #141210;
+  --bg-panel-raised: #1b1815;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  --text-hi: #ece8df;
+  --text-mid: #a9a49a;
+  --text-dim: #706b62;
+
+  --neon-green: #39ff8f;
+  --neon-green-dim: #1c8f52;
+  --amber: #ffb020;
+  --amber-dim: #a8730f;
+  --ember: #ff2f3a;
+
+  --font-display: 'Metal Mania', cursive;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-void);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 47, 58, 0.12), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(57, 255, 143, 0.06), transparent 60%);
+  color: var(--text-hi);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 40px;
+  gap: 20px;
+}
+
+/* ---- header -------------------------------------------------------- */
+.app-header {
+  text-align: center;
+  max-width: 720px;
+}
+
+.app-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  font-size: clamp(28px, 5vw, 46px);
+  margin: 0;
+  color: var(--text-hi);
+  text-shadow:
+    0 0 6px rgba(57, 255, 143, 0.35),
+    0 0 22px rgba(255, 47, 58, 0.25);
+}
+
+.app-title-cursor {
+  color: var(--neon-green);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+.app-subtitle {
+  margin: 10px 0 0;
+  color: var(--text-mid);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.app-footer {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+@keyframes blink {
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ---- stage (camera + overlays) -------------------------------------- */
+.stage-wrap {
+  position: relative;
+  width: min(960px, 94vw);
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 30px 60px -20px rgba(0, 0, 0, 0.8),
+    0 0 60px -20px rgba(57, 255, 143, 0.15);
+}
+
+.hidden-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.camera-canvas,
+.piano-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.piano-canvas {
+  pointer-events: none;
+}
+
+/* CV-HUD scanline texture, purely decorative */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.18) 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* CV-HUD corner brackets, like a targeting overlay */
+.corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
+  border: 2px solid var(--neon-green);
+  opacity: 0.85;
+  filter: drop-shadow(0 0 4px rgba(57, 255, 143, 0.6));
+}
+.corner--tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+.corner--tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+.corner--bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+.corner--br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+/* ---- start / loading / error gate ----------------------------------- */
+.stage-gate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(11, 10, 9, 0.86);
+  text-align: center;
+  padding: 24px;
+}
+
+.btn-start {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  color: var(--bg-void);
+  background: var(--neon-green);
+  border: none;
+  border-radius: 2px;
+  padding: 12px 22px;
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(57, 255, 143, 0.45);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-start:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 32px rgba(57, 255, 143, 0.65);
+}
+.btn-start:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+}
+
+.gate-msg {
+  color: var(--text-mid);
+  font-size: 13px;
+  max-width: 46ch;
+}
+.gate-msg--error {
+  color: var(--ember);
+}
+
+/* ---- status bar ------------------------------------------------------ */
+.status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 16px;
+  background: linear-gradient(to bottom, rgba(11, 10, 9, 0.82), rgba(11, 10, 9, 0.5));
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(1px);
+}
+
+.status-item {
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+.status-item strong {
+  color: var(--amber);
+  font-size: 13px;
+}
+.status-item--octave strong {
+  text-shadow: 0 0 8px rgba(255, 176, 32, 0.6);
+}
+.status-item--dim {
+  color: var(--text-dim);
+}
+.status-item--note-fired {
+  color: var(--neon-green);
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(57, 255, 143, 0.65);
+}
+.status-item--frametime {
+  margin-left: auto;
+  color: var(--text-dim);
+}
+
+/* ---- reduced motion --------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .app-title-cursor {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ---- small screens ----------------------------------------------------- */
+@media (max-width: 520px) {
+  .status-bar {
+    font-size: 10.5px;
+    gap: 10px;
+    padding: 8px 10px;
+  }
+  .status-item--frametime {
+    display: none;
+  }
+}
