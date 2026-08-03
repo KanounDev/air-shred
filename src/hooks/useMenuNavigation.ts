@@ -11,6 +11,8 @@ export interface MenuNavState {
   lockedFlashId: string | null; // briefly set when dwell completes on a disabled button
   lockedFlashUntil: number;
   buttons: MenuButtonRect[];
+  // when non-zero, ignore hover/dwell until this timestamp (performance.now)
+  ignoreUntil: number;
 }
 
 function initialState(): MenuNavState {
@@ -21,6 +23,7 @@ function initialState(): MenuNavState {
     lockedFlashId: null,
     lockedFlashUntil: 0,
     buttons: computeAllMenuButtons(FRAME_W, FRAME_H),
+    ignoreUntil: 0,
   };
 }
 
@@ -39,11 +42,27 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
   const stateRef = useRef<MenuNavState>(initialState());
   const lastTickRef = useRef<number | null>(null);
 
+  // Small grace period after returning to the menu during which hover/dwell
+  // are ignored. This prevents an immediately-stuck cursor (e.g. hand still
+  // pointing at the Tutorial button when coming back) from instantly
+  // re-firing the same selection.
+  const MENU_RESET_GRACE_MS = 600;
+
   const processFrame = (frame: HandFrameResult) => {
     const s = stateRef.current;
     const now = performance.now();
     const dt = lastTickRef.current === null ? 0 : now - lastTickRef.current;
     lastTickRef.current = now;
+
+    // If we've recently reset navigation (e.g. returned from another
+    // screen), ignore hover/dwell for a short grace period so the user
+    // has time to move their hand away before the menu can auto-select.
+    if (now < s.ignoreUntil) {
+      s.cursor = null;
+      s.hoveredId = null;
+      s.dwellProgress = 0;
+      return;
+    }
 
     const tip = frame.right?.[INDEX_FINGER_TIP];
     if (!tip) {
@@ -85,7 +104,9 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
 
   /** Called when returning to the menu (e.g. after Esc from Training) so a stale hover/dwell doesn't carry over. */
   const reset = () => {
-    stateRef.current = initialState();
+    const s = initialState();
+    s.ignoreUntil = performance.now() + MENU_RESET_GRACE_MS;
+    stateRef.current = s;
     lastTickRef.current = null;
   };
 
