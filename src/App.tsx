@@ -3,11 +3,12 @@ import { CameraCanvas } from './components/CameraCanvas';
 import { MenuOverlay } from './components/MenuOverlay';
 import { PianoStrip } from './components/PianoStrip';
 import { StatusBar } from './components/StatusBar';
+import { TutorialPage } from './components/TutorialPage';
 import { useHandTracking, type HandFrameResult } from './hooks/useHandTracking';
 import { useGestureSound } from './hooks/useGestureSound';
 import { useMenuNavigation } from './hooks/useMenuNavigation';
 
-type Screen = 'menu' | 'training';
+type Screen = 'menu' | 'training' | 'tutorial';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('menu');
@@ -20,25 +21,31 @@ export default function App() {
     useGestureSound();
 
   const enterTraining = useCallback(() => {
-    // Pick up any pose customization saved since the app booted.
     reloadTemplates();
     screenRef.current = 'training';
     setScreen('training');
   }, [reloadTemplates]);
 
-  const backToMenu = useCallback(() => {
-    screenRef.current = 'menu';
-    setScreen('menu');
+  const enterTutorial = useCallback(() => {
+    screenRef.current = 'tutorial';
+    setScreen('tutorial');
   }, []);
 
   const { stateRef: menuNavStateRef, processFrame: processMenuFrame, reset: resetMenuNav } = useMenuNavigation(
     (id) => {
       if (id === 'training') enterTraining();
-      // 'play' / 'tutorial' are surfaced as real, pointable buttons (see
-      // core/menuLayout.ts) but aren't wired to anything yet — selecting
-      // them can't reach this branch since they're flagged `enabled: false`.
+      else if (id === 'tutorial') enterTutorial();
+      // 'play' is surfaced as a real, pointable button, but isn't wired to
+      // anything yet; selecting it can't reach this branch since it's
+      // flagged `enabled: false`.
     },
   );
+
+  const backToMenu = useCallback(() => {
+    resetMenuNav();
+    screenRef.current = 'menu';
+    setScreen('menu');
+  }, [resetMenuNav]);
 
   const handleFrame = useCallback(
     (frame: HandFrameResult) => {
@@ -68,7 +75,7 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      if (screenRef.current === 'training') {
+      if (screenRef.current === 'training' || screenRef.current === 'tutorial') {
         backToMenu();
         resetMenuNav();
       }
@@ -81,19 +88,25 @@ export default function App() {
 
   return (
     <div className="app">
-      <main className="stage-wrap">
-        <CameraCanvas
-          videoRef={videoRef}
-          canvasRef={canvasRef}
-          status={status}
-          error={error}
-          onStart={handleStart}
-        />
-        {trackingReady && screen === 'menu' && (
-          <MenuOverlay navStateRef={menuNavStateRef} trackingReady={trackingReady} active />
-        )}
-        {trackingReady && screen === 'training' && <StatusBar stateRef={gestureStateRef} />}
-      </main>
+      {screen !== 'tutorial' ? (
+        <main className="stage-wrap">
+          <CameraCanvas
+            videoRef={videoRef}
+            canvasRef={canvasRef}
+            status={status}
+            error={error}
+            onStart={handleStart}
+          />
+          {trackingReady && screen === 'menu' && (
+            <MenuOverlay navStateRef={menuNavStateRef} trackingReady={trackingReady} active />
+          )}
+          {trackingReady && screen === 'training' && <StatusBar stateRef={gestureStateRef} />}
+        </main>
+      ) : (
+        <main className="tutorial-wrap">
+          <TutorialPage />
+        </main>
+      )}
 
       {trackingReady && screen === 'training' && (
         <section className="piano-wrap">

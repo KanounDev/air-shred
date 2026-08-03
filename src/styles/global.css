@@ -90,6 +90,138 @@ body {
     letter-spacing: 0.03em;
 }
 
+
+/* ---- tutorial page --------------------------------------------------- */
+
+.tutorial-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 40px;
+}
+
+.tutorial-page {
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.tutorial-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+}
+
+.tutorial-hand-panel {
+    background: rgba(20, 19, 17, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.tutorial-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.tutorial-panel-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.tutorial-panel-header span {
+    color: var(--text-mid);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+}
+
+.tutorial-pose-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.tutorial-pose-grid.left-hand {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tutorial-pose-grid.right-hand {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tutorial-pose-card {
+    min-height: 0;
+}
+
+.tutorial-pose-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.tutorial-pose-frame {
+    position: relative;
+    width: 100%;
+    max-width: 180px;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    background: rgba(28, 27, 25, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.tutorial-pose-label {
+    margin: 0;
+    color: var(--text-hi);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.tutorial-pose-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.tutorial-pose-placeholder {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-hi);
+}
+
+.btn-link {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--neon-green);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 8px 12px;
+}
+
+.btn-link:hover,
+.btn-link:focus-visible {
+    color: var(--amber);
+}
+
 @keyframes blink {
     0%,
     45% {

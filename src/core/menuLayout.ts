@@ -14,16 +14,14 @@ export interface MenuButtonRect extends MenuButtonDef {
 }
 
 /**
- * Only TRAINING is wired up right now — PLAY and TUTORIAL exist as real,
- * pointable buttons (so the menu reads as a real game menu, not a stub)
- * but are flagged `enabled: false`; dwelling on them flashes a "locked"
- * state instead of navigating anywhere. Flip `enabled` here once there's
- * something behind them.
+ * Only TRAINING and TUTORIAL are currently wired up — PLAY exists as a
+ * real pointable button but is flagged `enabled: false` so it flashes a
+ * locked state instead of navigating anywhere.
  */
 export const MENU_BUTTONS: MenuButtonDef[] = [
   { id: 'play', label: 'PLAY', enabled: false },
   { id: 'training', label: 'TRAINING', enabled: true },
-  { id: 'tutorial', label: 'TUTORIAL', enabled: false },
+  { id: 'tutorial', label: 'TUTORIAL', enabled: true },
 ];
 
 /** Lays the three mode buttons out centered, in the lower third of the given canvas size. */
