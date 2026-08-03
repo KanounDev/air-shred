@@ -29,6 +29,7 @@ export const POSE_MAX_MATCH_DISTANCE = 0.9; // farther than this from every temp
 export const POSE_MARGIN_RATIO = 0.97; // best match must be this much closer than 2nd-best, else "ambiguous"
 export const POSE_CONFIRM_FRAMES = 4; // frames the SAME recognized pose must hold before it fires/latches
 export const POSE_SMOOTHING_ALPHA = 0.4; // EMA smoothing on the live (post-normalization) feature vector
+export const POSE_CAPTURE_FRAMES = 20; // frames averaged together when recording each template sample
 
 // --- Musical mapping ----------------------------------------------------
 export const NOTE_NAMES = [

@@ -1,5 +1,7 @@
+export type MenuButtonId = 'play' | 'training' | 'tutorial';
+
 export interface MenuButtonDef {
-  id: 'play' | 'training' | 'tutorial';
+  id: MenuButtonId;
   label: string;
   enabled: boolean;
 }
@@ -24,7 +26,7 @@ export const MENU_BUTTONS: MenuButtonDef[] = [
   { id: 'tutorial', label: 'TUTORIAL', enabled: false },
 ];
 
-/** Lays the three buttons out centered, in the lower third of the given canvas size. */
+/** Lays the three mode buttons out centered, in the lower third of the given canvas size. */
 export function computeMenuButtonLayout(width: number, height: number): MenuButtonRect[] {
   const btnW = Math.min(230, width * 0.27);
   const btnH = Math.max(52, height * 0.13);
@@ -40,6 +42,11 @@ export function computeMenuButtonLayout(width: number, height: number): MenuButt
     w: btnW,
     h: btnH,
   }));
+}
+
+/** All pointable menu buttons in one array — what useMenuNavigation hit-tests and drawMenu iterates over. */
+export function computeAllMenuButtons(width: number, height: number): MenuButtonRect[] {
+  return computeMenuButtonLayout(width, height);
 }
 
 /** Returns whichever button rect contains (x, y), or null if none does. */

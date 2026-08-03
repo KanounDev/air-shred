@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { FRAME_H, FRAME_W, INDEX_FINGER_TIP, MENU_DWELL_MS, MENU_LOCKED_FLASH_MS } from '../core/constants';
-import { computeMenuButtonLayout, hitTestButtons, type MenuButtonRect } from '../core/menuLayout';
+import { computeAllMenuButtons, hitTestButtons, type MenuButtonRect } from '../core/menuLayout';
 import type { HandFrameResult } from './useHandTracking';
 
 export interface MenuNavState {
@@ -20,7 +20,7 @@ function initialState(): MenuNavState {
     dwellProgress: 0,
     lockedFlashId: null,
     lockedFlashUntil: 0,
-    buttons: computeMenuButtonLayout(FRAME_W, FRAME_H),
+    buttons: computeAllMenuButtons(FRAME_W, FRAME_H),
   };
 }
 

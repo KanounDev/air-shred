@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { AudioEngine } from '../core/audioEngine';
 import { HandPoseClassifier } from '../core/classifier';
 import {
@@ -12,8 +12,7 @@ import {
   FRAME_W,
 } from '../core/constants';
 import { extractPoseFeatures } from '../core/poseFeatures';
-import { LEFT_HAND_POSE_TEMPLATES } from '../data/leftHandPoses';
-import { RIGHT_HAND_OCTAVE_TEMPLATES } from '../data/rightHandOctaves';
+import { loadLeftHandTemplates, loadRightHandTemplates } from '../core/poseStore';
 import type { HandFrameResult } from './useHandTracking';
 
 export interface GestureState {
@@ -72,14 +71,40 @@ function ema(prev: number[] | null, next: number[], alpha: number): number[] {
  * frame (state is left untouched), not reset to "no match".
  */
 export function useGestureSound() {
-  const poseClassifier = useMemo(
-    () => new HandPoseClassifier(LEFT_HAND_POSE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO),
-    [],
-  );
-  const octaveClassifier = useMemo(
-    () => new HandPoseClassifier(RIGHT_HAND_OCTAVE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO),
-    [],
-  );
+  // Lazy-init-via-ref (checked once per render, only constructed the first
+  // time): lets reloadTemplates() below swap in freshly-saved templates
+  // without needing to remount this whole hook, unlike useMemo(() => ..., []).
+  const poseClassifierRef = useRef<HandPoseClassifier | null>(null);
+  const octaveClassifierRef = useRef<HandPoseClassifier | null>(null);
+  if (!poseClassifierRef.current) {
+    poseClassifierRef.current = new HandPoseClassifier(
+      loadLeftHandTemplates(),
+      POSE_MAX_MATCH_DISTANCE,
+      POSE_MARGIN_RATIO,
+    );
+  }
+  if (!octaveClassifierRef.current) {
+    octaveClassifierRef.current = new HandPoseClassifier(
+      loadRightHandTemplates(),
+      POSE_MAX_MATCH_DISTANCE,
+      POSE_MARGIN_RATIO,
+    );
+  }
+
+  /** Rebuilds both classifiers from whatever's currently saved (custom override, if any, else the baked defaults). Call after the Settings page saves new poses, before re-entering Training. */
+  const reloadTemplates = useCallback(() => {
+    poseClassifierRef.current = new HandPoseClassifier(
+      loadLeftHandTemplates(),
+      POSE_MAX_MATCH_DISTANCE,
+      POSE_MARGIN_RATIO,
+    );
+    octaveClassifierRef.current = new HandPoseClassifier(
+      loadRightHandTemplates(),
+      POSE_MAX_MATCH_DISTANCE,
+      POSE_MARGIN_RATIO,
+    );
+  }, []);
+
   const audioEngine = useMemo(() => new AudioEngine(), []);
 
   // Rendered UI (StatusBar/PianoOverlay) reads this ref on its own throttled
@@ -110,7 +135,7 @@ export function useGestureSound() {
       const L = left.current;
       L.ema = ema(L.ema, raw, POSE_SMOOTHING_ALPHA);
 
-      const { index: noteIdx, distance: dist } = poseClassifier.classify(L.ema);
+      const { index: noteIdx, distance: dist } = poseClassifierRef.current!.classify(L.ema);
       s.liveMatchNote = noteIdx;
       s.liveMatchDist = dist;
 
@@ -139,7 +164,7 @@ export function useGestureSound() {
       const R = right.current;
       R.ema = ema(R.ema, raw, POSE_SMOOTHING_ALPHA);
 
-      const { index: octIdx, distance: dist } = octaveClassifier.classify(R.ema);
+      const { index: octIdx, distance: dist } = octaveClassifierRef.current!.classify(R.ema);
       s.liveMatchOctave = octIdx;
       s.liveMatchOctaveDist = dist;
 
@@ -156,5 +181,5 @@ export function useGestureSound() {
     }
   };
 
-  return { stateRef, processFrame, audioEngine };
+  return { stateRef, processFrame, audioEngine, reloadTemplates };
 }

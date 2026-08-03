@@ -16,11 +16,19 @@ export default function App() {
   // staying fresh without re-subscribing the whole tracking loop.
   const screenRef = useRef<Screen>('menu');
 
-  const { stateRef: gestureStateRef, processFrame: processGestureFrame, audioEngine } = useGestureSound();
+  const { stateRef: gestureStateRef, processFrame: processGestureFrame, audioEngine, reloadTemplates } =
+    useGestureSound();
 
   const enterTraining = useCallback(() => {
+    // Pick up any pose customization saved since the app booted.
+    reloadTemplates();
     screenRef.current = 'training';
     setScreen('training');
+  }, [reloadTemplates]);
+
+  const backToMenu = useCallback(() => {
+    screenRef.current = 'menu';
+    setScreen('menu');
   }, []);
 
   const { stateRef: menuNavStateRef, processFrame: processMenuFrame, reset: resetMenuNav } = useMenuNavigation(
@@ -34,8 +42,9 @@ export default function App() {
 
   const handleFrame = useCallback(
     (frame: HandFrameResult) => {
-      if (screenRef.current === 'menu') processMenuFrame(frame);
-      else processGestureFrame(frame);
+      const s = screenRef.current;
+      if (s === 'menu') processMenuFrame(frame);
+      else if (s === 'training') processGestureFrame(frame);
     },
     [processMenuFrame, processGestureFrame],
   );
@@ -51,20 +60,22 @@ export default function App() {
     await start();
   }, [audioEngine, start]);
 
-  // Esc returns to the menu from Training — a plain keyboard fallback
-  // rather than another gesture, so it can't misfire mid-performance and
-  // doesn't compete with anything the hands are doing.
+  // Esc returns to the menu from Training or Settings — a plain keyboard
+  // fallback rather than another gesture, so it can't misfire mid-
+  // performance and doesn't compete with anything the hands are doing.
+  // Leaving Settings this way also discards any uncommitted recording
+  // session, same as main.py's ESC-cancels-recording behavior.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && screenRef.current === 'training') {
-        screenRef.current = 'menu';
-        setScreen('menu');
+      if (e.key !== 'Escape') return;
+      if (screenRef.current === 'training') {
+        backToMenu();
         resetMenuNav();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [resetMenuNav]);
+  }, [backToMenu, resetMenuNav]);
 
   const trackingReady = status === 'ready';
 
@@ -90,6 +101,7 @@ export default function App() {
           <p className="training-hint">Esc to return to the menu</p>
         </section>
       )}
+
 
       <footer className="app-footer">
         <span>camera frames never leave this browser tab</span>

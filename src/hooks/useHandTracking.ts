@@ -34,12 +34,12 @@ function toFrameResult(result: HandLandmarkerResult, frameMs: number): HandFrame
   let right: LandmarkLike[] | null = null;
 
   result.landmarks?.forEach((landmarks, i) => {
-    // "Left"/"Right" here already accounts for the mirrored (selfie-view)
-    // input we feed it below — see drawMirroredFrame — so this label maps
-    // directly onto the user's actual left/right hand, same as main.py's
-    // `label = handedness.classification[0].label` after its own
-    // cv2.flip(frame, 1).
-    const label = result.handedness?.[i]?.[0]?.categoryName;
+    // We mirror the video before detection so the visible preview behaves
+    // like a mirror. MediaPipe's handedness labels are produced relative to
+    // the raw image content, so we need to flip them back here to keep
+    // `frame.left`/`frame.right` matching the hand shown on-screen.
+    const modelLabel = result.handedness?.[i]?.[0]?.categoryName;
+    const label = modelLabel === 'Left' ? 'Right' : modelLabel === 'Right' ? 'Left' : modelLabel;
     if (label === 'Left') left = landmarks;
     else if (label === 'Right') right = landmarks;
   });
@@ -66,6 +66,7 @@ export function useHandTracking(onFrame: (result: HandFrameResult) => void) {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const offscreenRef = useRef<HTMLCanvasElement | null>(null);
 
   // onFrame is called every animation frame; keep the latest closure in a
   // ref instead of restarting the detect loop whenever the caller re-renders.
@@ -82,12 +83,19 @@ export function useHandTracking(onFrame: (result: HandFrameResult) => void) {
 
     const step = () => {
       const t0 = performance.now();
+      const offscreen = offscreenRef.current;
+      const offCtx = offscreen?.getContext('2d');
 
-      if (video.readyState >= 2) {
-        drawMirroredFrame(ctx, video, canvas.width, canvas.height);
+      if (video.readyState >= 2 && offscreen && offCtx) {
+        // mirrored video goes ONLY to the offscreen canvas
+        drawMirroredFrame(offCtx, video, offscreen.width, offscreen.height);
 
-        const result = landmarker.detectForVideo(canvas, t0);
+        const result = landmarker.detectForVideo(offscreen, t0);
         const frame = toFrameResult(result, performance.now() - t0);
+
+        // visible canvas: background fill, then skeleton only — no video pixels
+        ctx.fillStyle = '#0b0a09'; // matches --bg-void
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawSkeletons(ctx, frame.left, frame.right, canvas.width, canvas.height);
 
         onFrameRef.current(frame);
@@ -135,7 +143,11 @@ export function useHandTracking(onFrame: (result: HandFrameResult) => void) {
 
       canvas.width = FRAME_W;
       canvas.height = FRAME_H;
-
+      if (!offscreenRef.current) {
+        offscreenRef.current = document.createElement('canvas');
+        offscreenRef.current.width = FRAME_W;
+        offscreenRef.current.height = FRAME_H;
+      }
       setStatus('ready');
       tick(video, canvas);
     } catch (e) {

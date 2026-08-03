@@ -77,6 +77,7 @@ function drawButton(ctx: CanvasRenderingContext2D, btn: MenuButtonRect, nav: Men
   ctx.restore();
 }
 
+
 function drawCursor(ctx: CanvasRenderingContext2D, nav: MenuNavState) {
   if (!nav.cursor) return;
   const { x, y } = nav.cursor;
@@ -110,8 +111,9 @@ function drawCursor(ctx: CanvasRenderingContext2D, nav: MenuNavState) {
 
 /**
  * Draws the whole "title screen" — title, instructions, tracking-status
- * indicator, the three buttons, and the fingertip cursor/dwell ring — onto
- * the menu overlay canvas. Pure function: reads MenuNavState, writes pixels.
+ * indicator, the three mode buttons, and the fingertip cursor/dwell ring —
+ * onto the menu overlay canvas. Pure function: reads MenuNavState, writes
+ * pixels.
  */
 export function drawMenu(
   ctx: CanvasRenderingContext2D,
@@ -135,7 +137,7 @@ export function drawMenu(
 
   ctx.font = `${Math.max(11, Math.round(height * 0.026))}px "JetBrains Mono", monospace`;
   ctx.fillStyle = COL_SUBTITLE;
-  ctx.fillText('POINT WITH YOUR LEFT INDEX FINGER · HOLD TO SELECT', width / 2, height * 0.29);
+  ctx.fillText('POINT WITH YOUR RIGHT INDEX FINGER · HOLD TO SELECT', width / 2, height * 0.29);
 
   // tracking-ready indicator, left-aligned under the subtitle
   const dotX = width / 2 - 148;
@@ -149,6 +151,8 @@ export function drawMenu(
   ctx.fillStyle = COL_STATUS_TEXT;
   ctx.fillText(trackingReady ? 'TRACKING ONLINE' : 'ACQUIRING HANDS…', dotX + 10, statusY);
 
-  for (const btn of nav.buttons) drawButton(ctx, btn, nav, now);
+  for (const btn of nav.buttons) {
+    drawButton(ctx, btn, nav, now);
+  }
   drawCursor(ctx, nav);
 }
