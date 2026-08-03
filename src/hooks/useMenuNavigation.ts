@@ -13,6 +13,11 @@ export interface MenuNavState {
   buttons: MenuButtonRect[];
   // when non-zero, ignore hover/dwell until this timestamp (performance.now)
   ignoreUntil: number;
+  // id of a button that must be fully exited (fingertip leaves its hit box)
+  // at least once before it's allowed to accumulate hover/dwell again. Set
+  // when returning to the menu from a screen that button navigated to, so
+  // a hand that's still resting on the same button can't instantly re-fire it.
+  blockedId: string | null;
 }
 
 function initialState(): MenuNavState {
@@ -24,6 +29,7 @@ function initialState(): MenuNavState {
     lockedFlashUntil: 0,
     buttons: computeAllMenuButtons(FRAME_W, FRAME_H),
     ignoreUntil: 0,
+    blockedId: null,
   };
 }
 
@@ -43,10 +49,12 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
   const lastTickRef = useRef<number | null>(null);
 
   // Small grace period after returning to the menu during which hover/dwell
-  // are ignored. This prevents an immediately-stuck cursor (e.g. hand still
-  // pointing at the Tutorial button when coming back) from instantly
-  // re-firing the same selection.
-  const MENU_RESET_GRACE_MS = 600;
+  // are ignored outright — mostly to swallow the single stale frame that can
+  // arrive right as the screen switches. The real protection against an
+  // instant re-fire is `blockedId` below: a hand resting on the same button
+  // that just navigated away has to actually move off it before it can
+  // start counting dwell again, no matter how long it stays put.
+  const MENU_RESET_GRACE_MS = 250;
 
   const processFrame = (frame: HandFrameResult) => {
     const s = stateRef.current;
@@ -80,6 +88,20 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
     if (!hit) {
       s.hoveredId = null;
       s.dwellProgress = 0;
+      // Fingertip is off every button, so any pending block is satisfied.
+      s.blockedId = null;
+      return;
+    }
+
+    if (hit.id !== s.blockedId) {
+      // Either nothing was blocked, or the fingertip moved to a different
+      // button — either way the block on the original one is now cleared.
+      s.blockedId = null;
+    } else {
+      // Still sitting on the button that just navigated us here: don't let
+      // it hover/dwell at all until the hand actually leaves it.
+      s.hoveredId = null;
+      s.dwellProgress = 0;
       return;
     }
 
@@ -102,10 +124,17 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
     }
   };
 
-  /** Called when returning to the menu (e.g. after Esc from Training) so a stale hover/dwell doesn't carry over. */
-  const reset = () => {
+  /**
+   * Called when returning to the menu (e.g. after Esc from Training/Tutorial)
+   * so a stale hover/dwell doesn't carry over. Pass the id of the button
+   * that led to the screen being left (e.g. 'tutorial') and, if the hand is
+   * still resting on it, it's locked out of hover/dwell until it moves off —
+   * otherwise the same button would instantly re-fire on return.
+   */
+  const reset = (blockedId: string | null = null) => {
     const s = initialState();
     s.ignoreUntil = performance.now() + MENU_RESET_GRACE_MS;
+    s.blockedId = blockedId;
     stateRef.current = s;
     lastTickRef.current = null;
   };
