@@ -14,12 +14,12 @@ export interface MenuButtonRect extends MenuButtonDef {
 }
 
 /**
- * Only TRAINING and TUTORIAL are currently wired up — PLAY exists as a
- * real pointable button but is flagged `enabled: false` so it flashes a
- * locked state instead of navigating anywhere.
+ * All three mode buttons are wired up now: PLAY -> song-select screen,
+ * TRAINING -> the freeform playing screen, TUTORIAL -> the pose-reference
+ * popup.
  */
 export const MENU_BUTTONS: MenuButtonDef[] = [
-  { id: 'play', label: 'PLAY', enabled: false },
+  { id: 'play', label: 'PLAY', enabled: true },
   { id: 'training', label: 'TRAINING', enabled: true },
   { id: 'tutorial', label: 'TUTORIAL', enabled: true },
 ];

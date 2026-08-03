@@ -2,15 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraCanvas } from './components/CameraCanvas';
 import { MenuOverlay } from './components/MenuOverlay';
 import { PianoStrip } from './components/PianoStrip';
+import { SongSelectOverlay } from './components/SongSelectOverlay';
 import { StatusBar } from './components/StatusBar';
 import { TutorialModal } from './components/TutorialModal';
 import { useHandTracking, type HandFrameResult } from './hooks/useHandTracking';
 import { useGestureSound } from './hooks/useGestureSound';
 import { useMenuNavigation } from './hooks/useMenuNavigation';
+import { useSongSelectNavigation } from './hooks/useSongSelectNavigation';
 
-// 'tutorial' is no longer a separate screen — it's a popup shown on top of
-// the menu (see `tutorialOpen` below), not a route change.
-type Screen = 'menu' | 'training';
+// 'tutorial' is not a separate screen — it's a popup shown on top of the
+// menu (see `tutorialOpen` below), not a route change. 'songSelect' is the
+// screen PLAY leads to: pick a song from the list, see its stats, Start.
+type Screen = 'menu' | 'training' | 'songSelect';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('menu');
@@ -35,6 +38,11 @@ export default function App() {
     setScreen('training');
   }, [reloadTemplates]);
 
+  const enterSongSelect = useCallback(() => {
+    screenRef.current = 'songSelect';
+    setScreen('songSelect');
+  }, []);
+
   const openTutorial = useCallback(() => {
     tutorialOpenRef.current = true;
     setTutorialOpen(true);
@@ -44,11 +52,24 @@ export default function App() {
     (id) => {
       if (id === 'training') enterTraining();
       else if (id === 'tutorial') openTutorial();
-      // 'play' is surfaced as a real, pointable button, but isn't wired to
-      // anything yet; selecting it can't reach this branch since it's
-      // flagged `enabled: false`.
+      else if (id === 'play') enterSongSelect();
     },
   );
+
+  const handleStartSong = useCallback((songId: string) => {
+    // TODO(song playback): no real songs exist yet (see core/songLibrary.ts)
+    // — once they do, this should load/play `songId` and move into an
+    // actual playing screen. Intentionally a no-op for now: per the current
+    // frontend-only scope, Start is wired up and dwell-selectable but
+    // doesn't do anything yet.
+    void songId;
+  }, []);
+
+  const {
+    stateRef: songSelectNavStateRef,
+    processFrame: processSongSelectFrame,
+    reset: resetSongSelectNav,
+  } = useSongSelectNavigation(handleStartSong);
 
   const closeTutorial = useCallback(() => {
     tutorialOpenRef.current = false;
@@ -61,12 +82,16 @@ export default function App() {
   }, [resetMenuNav]);
 
   const backToMenu = useCallback(() => {
-    // The hand may still be resting on TRAINING right after Esc — block
-    // just that button until it moves off, so it can't instantly re-fire.
-    resetMenuNav(screenRef.current === 'training' ? 'training' : null);
+    // The hand may still be resting on the button that led here (TRAINING
+    // or PLAY) right after Esc — block just that one until it moves off,
+    // so it can't instantly re-fire.
+    const blockedId =
+      screenRef.current === 'training' ? 'training' : screenRef.current === 'songSelect' ? 'play' : null;
+    if (screenRef.current === 'songSelect') resetSongSelectNav();
+    resetMenuNav(blockedId);
     screenRef.current = 'menu';
     setScreen('menu');
-  }, [resetMenuNav]);
+  }, [resetMenuNav, resetSongSelectNav]);
 
   const handleFrame = useCallback(
     (frame: HandFrameResult) => {
@@ -78,9 +103,11 @@ export default function App() {
         if (!tutorialOpenRef.current) processMenuFrame(frame);
       } else if (s === 'training') {
         processGestureFrame(frame);
+      } else if (s === 'songSelect') {
+        processSongSelectFrame(frame);
       }
     },
-    [processMenuFrame, processGestureFrame],
+    [processMenuFrame, processGestureFrame, processSongSelectFrame],
   );
 
   const { videoRef, canvasRef, start, status, error } = useHandTracking(handleFrame);
@@ -94,17 +121,17 @@ export default function App() {
     await start();
   }, [audioEngine, start]);
 
-  // Esc closes the tutorial popup, or returns to the menu from Training —
-  // a plain keyboard fallback rather than another gesture, so it can't
-  // misfire mid-performance and doesn't compete with anything the hands
-  // are doing. Leaving Training this way also discards any uncommitted
-  // recording session, same as main.py's ESC-cancels-recording behavior.
+  // Esc closes the tutorial popup, or returns to the menu from Training/
+  // song-select — a plain keyboard fallback rather than another gesture,
+  // so it can't misfire mid-performance and doesn't compete with anything
+  // the hands are doing. It's the only keyboard interaction anywhere in
+  // the app; every other control is a hand gesture.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (tutorialOpenRef.current) {
         closeTutorial();
-      } else if (screenRef.current === 'training') {
+      } else if (screenRef.current === 'training' || screenRef.current === 'songSelect') {
         backToMenu();
       }
     };
@@ -128,6 +155,9 @@ export default function App() {
           <MenuOverlay navStateRef={menuNavStateRef} trackingReady={trackingReady} active />
         )}
         {trackingReady && screen === 'training' && <StatusBar stateRef={gestureStateRef} />}
+        {trackingReady && screen === 'songSelect' && (
+          <SongSelectOverlay navStateRef={songSelectNavStateRef} active />
+        )}
         {tutorialOpen && <TutorialModal onClose={closeTutorial} />}
       </main>
 
@@ -137,7 +167,6 @@ export default function App() {
           <p className="training-hint">Esc to return to the menu</p>
         </section>
       )}
-
 
       <footer className="app-footer">
         <span>camera frames never leave this browser tab</span>
