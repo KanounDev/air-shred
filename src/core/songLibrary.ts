@@ -39,6 +39,16 @@ export function findSong(id: string | null): SongDef | null {
   return SONGS.find((s) => s.id === id) ?? null;
 }
 
+export function getGlobalHighestScore(): number {
+  if (SONGS.length === 0) return 0;
+  return Math.max(...SONGS.map((s) => s.highestScore));
+}
+
+export function getGlobalLowestTimeSpent(): number {
+  if (SONGS.length === 0) return 0;
+  return Math.min(...SONGS.map((s) => s.timeSpentSec));
+}
+
 /** mm:ss, for the "Time Spent" stat box. */
 export function formatTimeSpent(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);

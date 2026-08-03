@@ -13,6 +13,8 @@ export interface SongRowRect extends Rect {
 export interface SongSelectLayout {
   list: Rect;
   rows: SongRowRect[];
+  globalScoreBox: Rect;
+  globalTimeBox: Rect;
   scoreBox: Rect;
   timeBox: Rect;
   startButton: Rect;
@@ -38,7 +40,7 @@ export function computeSongSelectLayout(width: number, height: number, songIds: 
     h: height * 0.74,
   };
 
-  const rowGap = 3;
+  const rowGap = height * 0.025;
   const rowH = (list.h - rowGap * Math.max(0, songIds.length - 1)) / Math.max(1, songIds.length);
   const rows: SongRowRect[] = songIds.map((id, i) => ({
     id,
@@ -51,30 +53,39 @@ export function computeSongSelectLayout(width: number, height: number, songIds: 
 
   const rightColX = list.x + list.w + width * 0.06;
   const statBoxW = width * 0.15;
-  const statBoxH = height * 0.17;
+  const statBoxH = height * 0.14;
   const statGap = width * 0.025;
 
-  
-
-  // Vertically center the stat boxes and the start button within the
-  // right-hand column (the same vertical span as the song list). This
-  // keeps the stats + button visually centered even on tall screens.
+  // Vertically center the stat groups and the start button within the right
+  // column. Global and user stats are separated with a dedicated section gap.
   const startBtnH = height * 0.135;
-  const gapBetween = height * 0.07;
-  const totalGroupH = statBoxH + gapBetween + startBtnH;
+  const sectionGap = height * 0.07;
+  const gapBetween = height * 0.05;
+  const totalGroupH = statBoxH * 2 + sectionGap + gapBetween + startBtnH;
   const groupTop = list.y + (list.h - totalGroupH) / 2;
 
-  const scoreBox: Rect = { x: rightColX, y: groupTop, w: statBoxW, h: statBoxH };
-  const timeBox: Rect = { x: rightColX + statBoxW + statGap, y: groupTop, w: statBoxW, h: statBoxH };
+  const globalScoreBox: Rect = { x: rightColX, y: groupTop, w: statBoxW, h: statBoxH };
+  const globalTimeBox: Rect = { x: rightColX + statBoxW + statGap, y: groupTop, w: statBoxW, h: statBoxH };
+
+  const scoreBox: Rect = { x: rightColX, y: groupTop + statBoxH + sectionGap, w: statBoxW, h: statBoxH };
+  const timeBox: Rect = { x: rightColX + statBoxW + statGap, y: groupTop + statBoxH + sectionGap, w: statBoxW, h: statBoxH };
 
   const startButton: Rect = {
     x: rightColX,
-    y: groupTop + statBoxH + gapBetween,
+    y: groupTop + statBoxH * 2 + sectionGap + gapBetween,
     w: statBoxW * 2 + statGap,
     h: startBtnH,
   };
 
-  return { list, rows, scoreBox, timeBox, startButton };
+  return {
+    list,
+    rows,
+    globalScoreBox,
+    globalTimeBox,
+    scoreBox,
+    timeBox,
+    startButton,
+  };
 }
 
 export function hitTestRows(x: number, y: number, rows: SongRowRect[]): SongRowRect | null {

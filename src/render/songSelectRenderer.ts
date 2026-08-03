@@ -1,4 +1,10 @@
-import { findSong, formatTimeSpent, SONGS } from '../core/songLibrary';
+import {
+  findSong,
+  formatTimeSpent,
+  getGlobalHighestScore,
+  getGlobalLowestTimeSpent,
+  SONGS,
+} from '../core/songLibrary';
 import type { Rect } from '../core/songSelectLayout';
 import type { SongSelectNavState } from '../hooks/useSongSelectNavigation';
 
@@ -162,6 +168,16 @@ function drawStatBox(
   ctx.fillText(label, iconCx, rect.y + rect.h * 0.92);
 }
 
+function drawSectionLabel(ctx: CanvasRenderingContext2D, x: number, y: number, text: string) {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `600 ${Math.max(10, Math.round(14))}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = COL_SUBTITLE;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
 function drawStartButton(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
   const btn = nav.layout.startButton;
   const isHovered = nav.hoveredId === 'start';
@@ -263,6 +279,25 @@ export function drawSongSelect(
 
   const selected = findSong(nav.selectedSongId);
   if (selected) {
+    const rightCenter = nav.layout.globalScoreBox.x + ((nav.layout.globalTimeBox.x + nav.layout.globalTimeBox.w) - nav.layout.globalScoreBox.x) / 2;
+    const labelOffset = Math.max(10, Math.round(height * 0.02));
+    drawSectionLabel(ctx, rightCenter, nav.layout.globalScoreBox.y - labelOffset, 'GLOBAL STATS');
+    drawSectionLabel(ctx, rightCenter, nav.layout.scoreBox.y - labelOffset, 'YOUR STATS');
+
+    drawStatBox(
+      ctx,
+      nav.layout.globalScoreBox,
+      'trophy',
+      'GLOBAL HIGHEST SCORE',
+      String(getGlobalHighestScore()),
+    );
+    drawStatBox(
+      ctx,
+      nav.layout.globalTimeBox,
+      'clock',
+      'GLOBAL LOWEST TIME',
+      formatTimeSpent(getGlobalLowestTimeSpent()),
+    );
     drawStatBox(ctx, nav.layout.scoreBox, 'trophy', 'HIGHEST SCORE', String(selected.highestScore));
     drawStatBox(ctx, nav.layout.timeBox, 'clock', 'TIME SPENT', formatTimeSpent(selected.timeSpentSec));
     drawStartButton(ctx, nav);
