@@ -9,8 +9,8 @@ export interface HandFrameResult {
     frameMs: number;
 }
 export type TrackingStatus = 'idle' | 'loading' | 'ready' | 'error';
-const WASM_BASE = 'https:
-const MODEL_URL = 'https:
+const WASM_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm';
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 function toFrameResult(result: HandLandmarkerResult, frameMs: number): HandFrameResult {
     let left: LandmarkLike[] | null = null;
     let right: LandmarkLike[] | null = null;
