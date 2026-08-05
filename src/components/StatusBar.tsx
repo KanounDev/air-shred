@@ -39,6 +39,12 @@ export function StatusBar({ stateRef }: Props) {
         )
       )}
 
+      {s.gateEnabled && (
+        <span className={`status-item ${s.gateArmed ? 'status-item--gate-armed' : 'status-item--gate-blocked'}`}>
+          {s.gateArmed ? 'GATE: armed' : 'GATE: show neutral pose'}
+        </span>
+      )}
+
       <span className="status-item status-item--frametime">{s.frameMs.toFixed(1)} ms/frame</span>
     </div>
   );

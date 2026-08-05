@@ -1,19 +1,20 @@
-import C from '../images/C.png';
-import CSharp from '../images/CSharp.png';
-import D from '../images/D.png';
-import DSharp from '../images/DSharp.png';
-import E from '../images/E.png';
-import F from '../images/F.png';
-import FSharp from '../images/FSharp.png';
-import G from '../images/G.png';
-import GSharp from '../images/GSharp.png';
-import A from '../images/A.png';
-import ASharp from '../images/ASharp.png';
-import B from '../images/B.png';
-import Octave1 from '../images/otcave1.png';
-import Octave2 from '../images/octave2.png';
-import Octave3 from '../images/octave3.png';
-import Octave4 from '../images/octave4.png';
+
+import C_img from '../images/C.png';
+import CSharp_img from '../images/CSharp.png';
+import D_img from '../images/D.png';
+import DSharp_img from '../images/DSharp.png';
+import E_img from '../images/E.png';
+import F_img from '../images/F.png';
+import FSharp_img from '../images/FSharp.png';
+import G_img from '../images/G.png';
+import GSharp_img from '../images/GSharp.png';
+import A_img from '../images/A.png';
+import ASharp_img from '../images/ASharp.png';
+import B_img from '../images/B.png';
+import octave1_img from '../images/otcave1.png';
+import octave2_img from '../images/octave2.png';
+import octave3_img from '../images/octave3.png';
+import octave4_img from '../images/octave4.png';
 
 interface PoseTile {
   label: string;
@@ -21,25 +22,25 @@ interface PoseTile {
 }
 
 const LEFT_POSES: PoseTile[] = [
-  { label: 'C', imageSrc: C },
-  { label: 'C#', imageSrc: CSharp },
-  { label: 'D', imageSrc: D },
-  { label: 'D#', imageSrc: DSharp },
-  { label: 'E', imageSrc: E },
-  { label: 'F', imageSrc: F },
-  { label: 'F#', imageSrc: FSharp },
-  { label: 'G', imageSrc: G },
-  { label: 'G#', imageSrc: GSharp },
-  { label: 'A', imageSrc: A },
-  { label: 'A#', imageSrc: ASharp },
-  { label: 'B', imageSrc: B },
+  { label: 'C', imageSrc: C_img },
+  { label: 'C#', imageSrc: CSharp_img },
+  { label: 'D', imageSrc: D_img },
+  { label: 'D#', imageSrc: DSharp_img },
+  { label: 'E', imageSrc: E_img },
+  { label: 'F', imageSrc: F_img },
+  { label: 'F#', imageSrc: FSharp_img },
+  { label: 'G', imageSrc: G_img },
+  { label: 'G#', imageSrc: GSharp_img },
+  { label: 'A', imageSrc: A_img },
+  { label: 'A#', imageSrc: ASharp_img },
+  { label: 'B', imageSrc: B_img },
 ];
 
 const RIGHT_POSES: PoseTile[] = [
-  { label: 'octave 1', imageSrc: Octave1 },
-  { label: 'octave 2', imageSrc: Octave2 },
-  { label: 'octave 3', imageSrc: Octave3 },
-  { label: 'octave 4', imageSrc: Octave4 },
+  { label: 'octave 1', imageSrc: octave1_img },
+  { label: 'octave 2', imageSrc: octave2_img },
+  { label: 'octave 3', imageSrc: octave3_img },
+  { label: 'octave 4', imageSrc: octave4_img },
 ];
 
 interface Props {

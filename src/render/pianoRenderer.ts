@@ -9,12 +9,15 @@ import {
   PIANO_MIN_WHITE_KEY_PX,
   PIANO_WHITE_SEMITONES,
 } from '../core/constants';
+import type { ChartNote } from '../core/midiChart';
 import type { GestureState } from '../hooks/useGestureSound';
 
 const COL_WHITE = '#d8d6c8'; // warm off-white, not clinical bright-white
 const COL_BLACK = '#141311';
 const COL_BORDER = 'rgba(255, 255, 255, 0.16)';
 const COL_HELD = '#39ff8f'; // steady highlight while a note is actively held
+const COL_TARGET = 'rgba(255, 176, 32, 0.35)';
+const COL_TARGET_BORDER = 'rgba(255, 176, 32, 0.9)';
 const COL_FLASH = '#c9ffe4'; // brief brighter pulse right at the instant a note fires
 const COL_LABEL_LIGHT = '#0a0a0a';
 const COL_LABEL_DARK = '#f2f2f2';
@@ -52,11 +55,15 @@ export function drawPiano(
   width: number,
   height: number,
   state: GestureState,
+  target: ChartNote | null,
   now: number,
 ): void {
   const heldSemitone = state.heldSemitone;
   const heldOctaveSelect = state.activeOctave; // 1..OCTAVE_COUNT
   const isFlashing = state.lastNotePlayed !== null && now - state.lastNoteTime < 250;
+  const targetSemitone = target ? target.noteIndex : null;
+  const targetOctaveSelect = target ? target.octave : null;
+  const targetOctaveIndex = targetOctaveSelect !== null ? targetOctaveSelect - 1 : null;
 
   const { start, count } = computeVisibleWindow(width, heldOctaveSelect);
 
@@ -93,9 +100,16 @@ export function drawPiano(
       rects.push([x0, x1]);
 
       const isHeld = semitone === heldSemitone && oct === heldOctaveSelect - 1;
-      ctx.fillStyle = isHeld ? (isFlashing ? COL_FLASH : COL_HELD) : COL_WHITE;
+      const isTarget = targetOctaveIndex !== null && semitone === targetSemitone && oct === targetOctaveIndex;
+      ctx.fillStyle = isHeld
+        ? isFlashing
+          ? COL_FLASH
+          : COL_HELD
+        : isTarget
+        ? COL_TARGET
+        : COL_WHITE;
       ctx.fillRect(x0, 0, x1 - x0, whiteH);
-      ctx.strokeStyle = COL_BORDER;
+      ctx.strokeStyle = isTarget ? COL_TARGET_BORDER : COL_BORDER;
       ctx.lineWidth = 1;
       ctx.strokeRect(x0, 0, x1 - x0, whiteH);
 
@@ -128,10 +142,17 @@ export function drawPiano(
       const x1 = seamX + blackW / 2;
 
       const isHeld = semitone === heldSemitone && oct === heldOctaveSelect - 1;
-      const color = isHeld ? (isFlashing ? COL_FLASH : COL_HELD) : COL_BLACK;
+      const isTarget = targetOctaveIndex !== null && semitone === targetSemitone && oct === targetOctaveIndex;
+      const color = isHeld
+        ? isFlashing
+          ? COL_FLASH
+          : COL_HELD
+        : isTarget
+        ? COL_TARGET
+        : COL_BLACK;
       ctx.fillStyle = color;
       ctx.fillRect(x0, 0, x1 - x0, blackH);
-      ctx.strokeStyle = COL_BORDER;
+      ctx.strokeStyle = isTarget ? COL_TARGET_BORDER : COL_BORDER;
       ctx.strokeRect(x0, 0, x1 - x0, blackH);
 
       if (isHeld) {

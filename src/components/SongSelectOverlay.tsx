@@ -6,6 +6,8 @@ import type { SongSelectNavState } from '../hooks/useSongSelectNavigation';
 interface Props {
   navStateRef: React.MutableRefObject<SongSelectNavState>;
   active: boolean;
+  previewingId?: string | null;
+  previewPaused?: boolean;
 }
 
 /**
@@ -16,7 +18,7 @@ interface Props {
  * hand landmarks pixel-for-pixel. Redrawn on its own rAF loop reading
  * useSongSelectNavigation's ref — no React re-renders on the hot path.
  */
-export function SongSelectOverlay({ navStateRef, active }: Props) {
+export function SongSelectOverlay({ navStateRef, active, previewingId, previewPaused }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -27,12 +29,13 @@ export function SongSelectOverlay({ navStateRef, active }: Props) {
 
     let raf: number;
     const loop = () => {
-      drawSongSelect(ctx, canvas.width, canvas.height, navStateRef.current);
+      drawSongSelect(ctx, canvas.width, canvas.height, navStateRef.current, previewingId ?? null, !!previewPaused);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
+
     return () => cancelAnimationFrame(raf);
-  }, [active, navStateRef]);
+  }, [active, navStateRef, previewingId, previewPaused]);
 
   return <canvas ref={canvasRef} className="overlay-canvas" width={FRAME_W} height={FRAME_H} />;
 }

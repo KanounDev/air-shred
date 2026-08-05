@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { drawPiano } from '../render/pianoRenderer';
 import type { GestureState } from '../hooks/useGestureSound';
+import type { MutableRefObject } from 'react';
+import type { GameState } from '../hooks/useSongGame';
 
 interface Props {
   stateRef: React.MutableRefObject<GestureState>;
   active: boolean;
+  gameStateRef?: MutableRefObject<GameState> | null;
 }
 
 /**
@@ -24,7 +27,7 @@ interface Props {
  * reading gesture state straight from the ref useGestureSound mutates —
  * no React re-renders on the hot path.
  */
-export function PianoStrip({ stateRef, active }: Props) {
+export function PianoStrip({ stateRef, active, gameStateRef }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -48,7 +51,8 @@ export function PianoStrip({ stateRef, active }: Props) {
 
     let raf: number;
     const loop = () => {
-      drawPiano(ctx, canvas.width, canvas.height, stateRef.current, performance.now());
+      const target = gameStateRef ? gameStateRef.current.currentTarget : null;
+      drawPiano(ctx, canvas.width, canvas.height, stateRef.current, target, performance.now());
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -57,7 +61,7 @@ export function PianoStrip({ stateRef, active }: Props) {
       observer.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [active, stateRef]);
+  }, [active, stateRef, gameStateRef]);
 
   return (
     <div ref={containerRef} className="piano-strip">

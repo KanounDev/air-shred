@@ -23,9 +23,10 @@ export interface ClassifyResult {
  * single recording".
  *
  * Unlike main.py, this version is read-only: poses are baked in at build
- * time (data/leftHandPoses.ts, data/rightHandOctaves.ts) rather than
- * recorded/saved/loaded at runtime, so all the recording-wizard machinery
- * from the original class has been dropped — only classify() survives.
+ * time (data/leftHandPoses.ts, data/rightHandOctaves.ts, data/leftHandBuffer.ts)
+ * rather than recorded/saved/loaded at runtime, so all the recording-wizard
+ * machinery from the original class has been dropped — only classify() and
+ * isReady() survive.
  */
 export class HandPoseClassifier {
   /** [class][sample][40] — one entry per note/octave, each with 1+ recorded feature vectors. */
@@ -71,5 +72,10 @@ export class HandPoseClassifier {
     }
 
     return { index: bestIdx, distance: bestDist };
+  }
+
+  /** True as soon as AT LEAST ONE class has a recording — matching can run against whatever's been recorded so far. Mirrors main.py's is_ready(); used to auto-disable the buffer gate when no neutral pose has been recorded. */
+  isReady(): boolean {
+    return this.templates.some((samples) => samples.length > 0);
   }
 }

@@ -451,6 +451,14 @@ body {
     color: var(--text-dim);
 }
 
+.status-item--gate-armed {
+    color: var(--neon-green);
+}
+
+.status-item--gate-blocked {
+    color: var(--amber);
+}
+
 
 /* ---- piano strip (lives below the camera stage, not overlaid on it) --- */
 

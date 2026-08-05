@@ -1,55 +1,124 @@
 export interface SongDef {
   id: string;
   title: string;
-  /**
-   * Placeholder stats. Real values will eventually come from tracked
-   * gameplay:
-   *   - highestScore = (notes played correctly) - (notes played wrong),
-   *     clamped to 0 if that goes negative. Not computed yet — every song
-   *     just shows 0 for now.
-   *   - timeSpentSec = elapsed time from starting the song until either
-   *     the final note is played or the user quits back to the menu
-   *     (Esc). Not tracked yet — every song shows 0:00 for now.
-   */
+  artist: string;
+  chartUrl: string;
   highestScore: number;
   timeSpentSec: number;
 }
 
-// TODO(song playback): this is a static placeholder catalog so the
-// song-select screen has something to list and interact with. Clicking a
-// song only selects it right now — it doesn't load or play any audio.
-// Once real songs exist, replace this list with the actual catalog (title,
-// audio/note-chart source, etc.) and wire SongSelectOverlay's "Start" dwell
-// to actually load and play the selected one instead of no-op'ing.
-export const SONGS: SongDef[] = [
-  { id: 'song-1', title: 'Song 1', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-2', title: 'Song 2', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-3', title: 'Song 3', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-4', title: 'Song 4', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-5', title: 'Song 5', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-6', title: 'Song 6', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-7', title: 'Song 7', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-8', title: 'Song 8', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-9', title: 'Song 9', highestScore: 0, timeSpentSec: 0 },
-  { id: 'song-10', title: 'Song 10', highestScore: 0, timeSpentSec: 0 },
-];
+interface PersistentSongStats {
+  highestScore: number;
+  timeSpentSec: number;
+}
+
+const SONG_STATS_KEY = 'airshred_song_stats';
+
+const BASE_SONGS: SongDef[] = [
+  {
+    id: 'ode-to-joy',
+    title: 'Ode to Joy',
+    artist: 'Ludwig van Beethoven',
+    chartUrl: '/songs/ode-to-joy/ode-to-joy.mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  {
+    id: 'coffin-dance',
+    title: 'Coffin Dance',
+    artist: 'Arranged by Felicia Ong',
+    chartUrl: '/songs/coffin-dance/Arranged by Felicia Ong - Coffin Dance (Right Hand only).mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  {
+    id: 'tokyo-drift',
+    title: 'Tokyo Drift',
+    artist: 'Teryaki Boys',
+    chartUrl: '/songs/tokyo-drift/Teryaki Boys - Tokyo Drift.mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  {
+    id: 'bloody-marry',
+    title: 'Bloody Mary',
+    artist: 'Lady Gaga (arr. xZeron)',
+    chartUrl: '/songs/bloody-marry/xZeron - Lady Gaga - Bloody Marry.mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  {
+    id: 'game-of-thrones',
+    title: 'Game of Thrones',
+    artist: 'Ramin Djawadi',
+    chartUrl: '/songs/game-of-thrones/Ramin Djawadi - Game of Thrones.mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  {
+    id: 'he-is-a-pirate',
+    title: "He's a Pirate",
+    artist: 'Klaus Badelt (Pirates of the Caribbean)',
+    chartUrl: '/songs/he-is-a-pirate/Pirates of the Caribbean - He\'s a Pirate.mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  {
+    id:'fur-elise',
+    title: 'Fur Elise',
+    artist: 'Ludwig van Beethoven',
+    chartUrl: '/songs/fur-elise/Fur Elise.mid',
+    highestScore: 0,
+    timeSpentSec: 0,
+  },
+  ];
+
+function loadPersistentStats(): Record<string, PersistentSongStats> {
+  try {
+    const raw = localStorage.getItem(SONG_STATS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, PersistentSongStats>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePersistentStats(stats: Record<string, PersistentSongStats>): void {
+  localStorage.setItem(SONG_STATS_KEY, JSON.stringify(stats));
+}
+
+export function getSongStats(songId: string): PersistentSongStats {
+  const stats = loadPersistentStats();
+  return stats[songId] ?? { highestScore: 0, timeSpentSec: 0 };
+}
+
+export function saveSongStats(songId: string, newStats: PersistentSongStats): void {
+  const stats = loadPersistentStats();
+  stats[songId] = newStats;
+  savePersistentStats(stats);
+}
+
+export function getSongs(): SongDef[] {
+  const stats = loadPersistentStats();
+  return BASE_SONGS.map((song) => ({
+    ...song,
+    ...stats[song.id],
+  }));
+}
 
 export function findSong(id: string | null): SongDef | null {
   if (id === null) return null;
-  return SONGS.find((s) => s.id === id) ?? null;
+  return getSongs().find((s) => s.id === id) ?? null;
 }
 
-export function getGlobalHighestScore(): number {
-  if (SONGS.length === 0) return 0;
-  return Math.max(...SONGS.map((s) => s.highestScore));
+/** hh:mm:ss, used by the game timer and the Time Spent stat box. */
+export function formatDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function getGlobalLowestTimeSpent(): number {
-  if (SONGS.length === 0) return 0;
-  return Math.min(...SONGS.map((s) => s.timeSpentSec));
-}
-
-/** mm:ss, for the "Time Spent" stat box. */
+/** mm:ss, convenience wrapper for Time Spent display. */
 export function formatTimeSpent(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = Math.floor(totalSeconds % 60);

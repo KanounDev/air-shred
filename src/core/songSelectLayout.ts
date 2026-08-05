@@ -7,89 +7,126 @@ export interface Rect {
 
 export interface SongRowRect extends Rect {
   id: string;
+  songId: string | null;
   index: number;
 }
 
 export interface SongSelectLayout {
   list: Rect;
   rows: SongRowRect[];
-  globalScoreBox: Rect;
-  globalTimeBox: Rect;
   scoreBox: Rect;
   timeBox: Rect;
+  pauseButton: Rect;
+  resumeButton: Rect;
   startButton: Rect;
+  scrollUpButton: Rect;
+  scrollDownButton: Rect;
+  showScrollArrows: boolean;
 }
 
 /**
- * Lays out the song-select screen: a tall list panel on the left (one row
- * per song — see core/songLibrary.ts) and a right-hand column holding the
- * two stat boxes and the Start button beneath them. Mirrors
- * core/menuLayout.ts's approach — everything as a fraction of the shared
- * FRAME_W x FRAME_H canvas space, so it scales with the stage the same way
- * the menu buttons and piano strip do.
- *
- * Doesn't handle scrolling — with SONGS.length around a dozen, rows still
- * come out tap-legible at 960x540. Revisit with a scrollable/paged list if
- * the catalog grows a lot once real songs are added.
+ * Lays out the song-select screen: a scrollable left list panel with up/down
+ * arrows, and a right-hand column holding the stat boxes plus the vertical
+ * Pause/Resume controls and the Start button.
  */
-export function computeSongSelectLayout(width: number, height: number, songIds: string[]): SongSelectLayout {
+export function computeSongSelectLayout(
+  width: number,
+  height: number,
+  songIds: string[],
+  scrollIndex = 0,
+): SongSelectLayout {
   const list: Rect = {
     x: width * 0.06,
     y: height * 0.16,
-    w: width * 0.42,
+    w: width * 0.34,
     h: height * 0.74,
   };
 
-  const rowGap = height * 0.025;
-  const rowH = (list.h - rowGap * Math.max(0, songIds.length - 1)) / Math.max(1, songIds.length);
-  const rows: SongRowRect[] = songIds.map((id, i) => ({
-    id,
-    index: i,
-    x: list.x,
-    y: list.y + i * (rowH + rowGap),
-    w: list.w,
-    h: rowH,
-  }));
+  const arrowSize = Math.min(36, height * 0.05);
+  const arrowGap = 6;
+  const contentY = list.y + arrowSize + arrowGap;
+  const contentH = list.h - arrowSize * 2 - arrowGap * 2;
+  const maxVisibleRows = 5;
+  const visibleCount = maxVisibleRows;
+  const showScrollArrows = songIds.length > visibleCount;
+  const rowGap = 4;
+  const rowH = (contentH - rowGap * Math.max(0, visibleCount - 1)) / visibleCount;
+
+  const rows: SongRowRect[] = Array.from({ length: visibleCount }, (_, i) => {
+    const songId = songIds[scrollIndex + i] ?? null;
+    return {
+      id: songId ?? `empty-${i}`,
+      songId,
+      index: scrollIndex + i,
+      x: list.x,
+      y: contentY + i * (rowH + rowGap),
+      w: list.w,
+      h: rowH,
+    };
+  });
+
+  const scrollUpButton: Rect = {
+    x: list.x + (list.w - arrowSize) / 2,
+    y: list.y,
+    w: arrowSize,
+    h: arrowSize,
+  };
+
+  const scrollDownButton: Rect = {
+    x: list.x + (list.w - arrowSize) / 2,
+    y: list.y + list.h - arrowSize,
+    w: arrowSize,
+    h: arrowSize,
+  };
 
   const rightColX = list.x + list.w + width * 0.06;
   const statBoxW = width * 0.15;
-  const statBoxH = height * 0.14;
-  const statGap = width * 0.025;
-
-  // Vertically center the stat groups and the start button within the right
-  // column. Global and user stats are separated with a dedicated section gap.
+  const statBoxH = height * 0.15;
+  const statGap = width * 0.02;
+  const controlH = height * 0.1;
+  const controlGap = height * 0.02;
   const startBtnH = height * 0.135;
-  const sectionGap = height * 0.07;
-  const gapBetween = height * 0.05;
-  const totalGroupH = statBoxH * 2 + sectionGap + gapBetween + startBtnH;
+  const totalGroupH = statBoxH + controlGap + controlH + controlGap + controlH + controlGap + startBtnH;
   const groupTop = list.y + (list.h - totalGroupH) / 2;
 
-  const globalScoreBox: Rect = { x: rightColX, y: groupTop, w: statBoxW, h: statBoxH };
-  const globalTimeBox: Rect = { x: rightColX + statBoxW + statGap, y: groupTop, w: statBoxW, h: statBoxH };
-
-  const scoreBox: Rect = { x: rightColX, y: groupTop + statBoxH + sectionGap, w: statBoxW, h: statBoxH };
-  const timeBox: Rect = { x: rightColX + statBoxW + statGap, y: groupTop + statBoxH + sectionGap, w: statBoxW, h: statBoxH };
-
+  const scoreBox: Rect = { x: rightColX, y: groupTop, w: statBoxW, h: statBoxH };
+  const timeBox: Rect = { x: rightColX + statBoxW + statGap, y: groupTop, w: statBoxW, h: statBoxH };
+  const pauseButton: Rect = {
+    x: rightColX,
+    y: timeBox.y + timeBox.h + controlGap,
+    w: statBoxW * 2 + statGap,
+    h: controlH,
+  };
+  const resumeButton: Rect = {
+    x: rightColX,
+    y: pauseButton.y + pauseButton.h + controlGap,
+    w: pauseButton.w,
+    h: controlH,
+  };
   const startButton: Rect = {
     x: rightColX,
-    y: groupTop + statBoxH * 2 + sectionGap + gapBetween,
-    w: statBoxW * 2 + statGap,
+    y: resumeButton.y + resumeButton.h + controlGap,
+    w: pauseButton.w,
     h: startBtnH,
   };
 
   return {
     list,
     rows,
-    globalScoreBox,
-    globalTimeBox,
     scoreBox,
     timeBox,
+    pauseButton,
+    resumeButton,
     startButton,
+    scrollUpButton,
+    scrollDownButton,
+    showScrollArrows,
   };
 }
 
 export function hitTestRows(x: number, y: number, rows: SongRowRect[]): SongRowRect | null {
   for (const r of rows) {
+    if (!r.songId) continue;
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return r;
   }
   return null;

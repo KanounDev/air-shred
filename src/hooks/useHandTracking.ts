@@ -60,7 +60,10 @@ function toFrameResult(result: HandLandmarkerResult, frameMs: number): HandFrame
  * Deliberately does NOT hold gesture/note state itself — this hook's job
  * ends at "camera pixels in, landmarks + a drawn frame out".
  */
-export function useHandTracking(onFrame: (result: HandFrameResult) => void) {
+export function useHandTracking(
+  onFrame: (result: HandFrameResult) => void,
+  drawOverlay?: (ctx: CanvasRenderingContext2D, width: number, height: number) => void,
+) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const landmarkerRef = useRef<HandLandmarker | null>(null);
@@ -97,6 +100,15 @@ export function useHandTracking(onFrame: (result: HandFrameResult) => void) {
         ctx.fillStyle = '#0b0a09'; // matches --bg-void
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawSkeletons(ctx, frame.left, frame.right, canvas.width, canvas.height);
+
+        // Optional overlay drawing hook (used for play-screen HUD text)
+        if (drawOverlay) {
+          try {
+            drawOverlay(ctx, canvas.width, canvas.height);
+          } catch (e) {
+            // ignore overlay drawing errors to avoid breaking detection loop
+          }
+        }
 
         onFrameRef.current(frame);
       }

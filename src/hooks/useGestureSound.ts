@@ -2,6 +2,9 @@ import { useCallback, useMemo, useRef } from 'react';
 import { AudioEngine } from '../core/audioEngine';
 import { HandPoseClassifier } from '../core/classifier';
 import {
+  BUFFER_CONFIRM_FRAMES,
+  BUFFER_MARGIN_RATIO,
+  BUFFER_MAX_MATCH_DISTANCE,
   NOTE_NAMES,
   OCTAVE_BASE,
   POSE_CONFIRM_FRAMES,
@@ -12,7 +15,7 @@ import {
   FRAME_W,
 } from '../core/constants';
 import { extractPoseFeatures } from '../core/poseFeatures';
-import { loadLeftHandTemplates, loadRightHandTemplates } from '../core/poseStore';
+import { loadLeftHandBufferTemplates, loadLeftHandTemplates, loadRightHandTemplates } from '../core/poseStore';
 import type { HandFrameResult } from './useHandTracking';
 
 export interface GestureState {
@@ -26,6 +29,10 @@ export interface GestureState {
   liveMatchDist: number | null;
   liveMatchOctave: number | null;
   liveMatchOctaveDist: number | null;
+  /** Whether the buffer/neutral-pose gate is active at all — false until at least one buffer sample is recorded (see data/leftHandBuffer.ts). Mirrors main.py's buffer_classifier.is_ready(). */
+  gateEnabled: boolean;
+  /** Whether the left hand is currently allowed to fire a NEW note. Only meaningful when gateEnabled is true. Mirrors main.py's left_armed. */
+  gateArmed: boolean;
   frameMs: number;
 }
 
@@ -39,6 +46,8 @@ function initialState(): GestureState {
     liveMatchDist: null,
     liveMatchOctave: null,
     liveMatchOctaveDist: null,
+    gateEnabled: false,
+    gateArmed: true,
     frameMs: 0,
   };
 }
@@ -59,7 +68,20 @@ function ema(prev: number[] | null, next: number[], alpha: number): number[] {
  *     POSE_CONFIRM_FRAMES consecutive frames before it *fires* (plays a
  *     sound), and it will not re-fire again until the hand leaves that
  *     pose (goes to "no match" or a different pose first) — "fires once
- *     per touch", not "fires every frame it's held".
+ *     per touch", not "fires every frame it's held". On top of that, a
+ *     NEW note additionally requires the buffer/neutral-pose GATE to be
+ *     armed (see below) — this is the main.py "BUFFER GATE (NEW)" feature.
+ *
+ *   - BUFFER GATE (left hand only): before a new note can fire, the left
+ *     hand must show a confident match against the separate buffer/
+ *     neutral-pose classifier (data/leftHandBuffer.ts — typically an open
+ *     hand), held for BUFFER_CONFIRM_FRAMES. This stops two visually
+ *     similar notes from misfiring into each other during the brief
+ *     in-between transition. If no buffer pose has been recorded at all,
+ *     the gate auto-disables and behaves exactly like before (every note
+ *     is always "armed"). The gate starts armed each session so the very
+ *     first note doesn't require showing the neutral pose first — it only
+ *     applies BETWEEN notes.
  *
  *   - RIGHT hand (octave): the SAME recognized octave must hold for
  *     POSE_CONFIRM_FRAMES frames before the active octave *latches* to it.
@@ -76,6 +98,7 @@ export function useGestureSound() {
   // without needing to remount this whole hook, unlike useMemo(() => ..., []).
   const poseClassifierRef = useRef<HandPoseClassifier | null>(null);
   const octaveClassifierRef = useRef<HandPoseClassifier | null>(null);
+  const bufferClassifierRef = useRef<HandPoseClassifier | null>(null);
   if (!poseClassifierRef.current) {
     poseClassifierRef.current = new HandPoseClassifier(
       loadLeftHandTemplates(),
@@ -90,8 +113,15 @@ export function useGestureSound() {
       POSE_MARGIN_RATIO,
     );
   }
+  if (!bufferClassifierRef.current) {
+    bufferClassifierRef.current = new HandPoseClassifier(
+      loadLeftHandBufferTemplates(),
+      BUFFER_MAX_MATCH_DISTANCE,
+      BUFFER_MARGIN_RATIO,
+    );
+  }
 
-  /** Rebuilds both classifiers from whatever's currently saved (custom override, if any, else the baked defaults). Call after the Settings page saves new poses, before re-entering Training. */
+  /** Rebuilds all three classifiers from whatever's currently saved (custom override, if any, else the baked defaults). Call before re-entering Training if poses may have changed. */
   const reloadTemplates = useCallback(() => {
     poseClassifierRef.current = new HandPoseClassifier(
       loadLeftHandTemplates(),
@@ -102,6 +132,11 @@ export function useGestureSound() {
       loadRightHandTemplates(),
       POSE_MAX_MATCH_DISTANCE,
       POSE_MARGIN_RATIO,
+    );
+    bufferClassifierRef.current = new HandPoseClassifier(
+      loadLeftHandBufferTemplates(),
+      BUFFER_MAX_MATCH_DISTANCE,
+      BUFFER_MARGIN_RATIO,
     );
   }, []);
 
@@ -117,6 +152,10 @@ export function useGestureSound() {
     pendingNote: null as number | null,
     pendingCount: 0,
     lastFiredNote: null as number | null,
+    // Buffer/neutral gate runtime state — starts ARMED so the very first
+    // note of a session doesn't require showing the buffer pose first.
+    armed: true,
+    bufferPendingCount: 0,
   });
 
   const right = useRef({
@@ -129,11 +168,30 @@ export function useGestureSound() {
     const s = stateRef.current;
     s.frameMs = frame.frameMs;
 
-    // ---- LEFT HAND: note selection (fire-once-per-touch) ----
+    // ---- LEFT HAND: note selection (fire-once-per-touch, gated) ----
     if (frame.left) {
       const raw = extractPoseFeatures(frame.left, FRAME_W, FRAME_H);
       const L = left.current;
       L.ema = ema(L.ema, raw, POSE_SMOOTHING_ALPHA);
+
+      // --- buffer/neutral gate: must be seen before the NEXT note fires ---
+      const bufferClassifier = bufferClassifierRef.current!;
+      const gateEnabled = bufferClassifier.isReady();
+      if (gateEnabled) {
+        const { index: bufIdx } = bufferClassifier.classify(L.ema);
+        if (bufIdx !== null) {
+          L.bufferPendingCount += 1;
+          if (L.bufferPendingCount >= BUFFER_CONFIRM_FRAMES) {
+            L.armed = true;
+          }
+        } else {
+          L.bufferPendingCount = 0;
+        }
+      } else {
+        L.armed = true; // nothing recorded -> gate disabled, old behavior
+      }
+      s.gateEnabled = gateEnabled;
+      s.gateArmed = L.armed;
 
       const { index: noteIdx, distance: dist } = poseClassifierRef.current!.classify(L.ema);
       s.liveMatchNote = noteIdx;
@@ -148,11 +206,13 @@ export function useGestureSound() {
 
       if (noteIdx === null) {
         L.lastFiredNote = null; // hand left recognizable pose -> re-armed
-      } else if (L.pendingCount >= POSE_CONFIRM_FRAMES && L.pendingNote !== L.lastFiredNote) {
+      } else if (L.pendingCount >= POSE_CONFIRM_FRAMES && L.pendingNote !== L.lastFiredNote && L.armed) {
         audioEngine.playNote(noteIdx, s.activeOctave);
         s.lastNotePlayed = `${NOTE_NAMES[noteIdx]}${OCTAVE_BASE + s.activeOctave - 1}`;
         s.lastNoteTime = performance.now();
         L.lastFiredNote = noteIdx;
+        L.armed = false; // must show the buffer pose again to re-arm
+        L.bufferPendingCount = 0;
       }
 
       s.heldSemitone = L.lastFiredNote;

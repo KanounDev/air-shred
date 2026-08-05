@@ -6,15 +6,16 @@ import {
   hitTestRows,
   type SongSelectLayout,
 } from '../core/songSelectLayout';
-import { SONGS } from '../core/songLibrary';
+import { getSongs } from '../core/songLibrary';
 import type { HandFrameResult } from './useHandTracking';
 
 export interface SongSelectNavState {
   /** Right index fingertip position in the shared FRAME_W x FRAME_H canvas space, or null if the right hand isn't visible. */
   cursor: { x: number; y: number } | null;
-  hoveredId: string | null; // a song id, or 'start'
+  hoveredId: string | null; // a song id, or 'start', 'pause', 'resume', 'scroll-up', 'scroll-down'
   dwellProgress: number; // 0..1
   selectedSongId: string | null;
+  scrollIndex: number;
   layout: SongSelectLayout;
   // same "grace period + must-leave-before-refire" guards as useMenuNavigation,
   // reused here for the Start button once it actually navigates somewhere.
@@ -23,16 +24,14 @@ export interface SongSelectNavState {
 }
 
 function initialState(): SongSelectNavState {
+  const ids = getSongs().map((s) => s.id);
   return {
     cursor: null,
     hoveredId: null,
     dwellProgress: 0,
     selectedSongId: null,
-    layout: computeSongSelectLayout(
-      FRAME_W,
-      FRAME_H,
-      SONGS.map((s) => s.id),
-    ),
+    scrollIndex: 0,
+    layout: computeSongSelectLayout(FRAME_W, FRAME_H, ids, 0),
     ignoreUntil: 0,
     blockedId: null,
   };
@@ -53,7 +52,10 @@ const NAV_RESET_GRACE_MS = 250;
  * dwell mechanic and calls `onStart(songId)` — currently a no-op upstream
  * since there's no song playback yet (see core/songLibrary.ts).
  */
-export function useSongSelectNavigation(onStart: (songId: string) => void) {
+export function useSongSelectNavigation(
+  onStart: (songId: string) => void,
+  onPreview?: (actionId: string) => void,
+) {
   const stateRef = useRef<SongSelectNavState>(initialState());
   const lastTickRef = useRef<number | null>(null);
 
@@ -78,14 +80,33 @@ export function useSongSelectNavigation(onStart: (songId: string) => void) {
       return;
     }
 
+    const ids = getSongs().map((song) => song.id);
+    s.layout = computeSongSelectLayout(FRAME_W, FRAME_H, ids, s.scrollIndex);
+
     const x = tip.x * FRAME_W;
     const y = tip.y * FRAME_H;
     s.cursor = { x, y };
 
     const hoveredRow = hitTestRows(x, y, s.layout.rows);
     const hoveredStart =
-      !hoveredRow && s.selectedSongId !== null && hitTestRect(x, y, s.layout.startButton) ? 'start' : null;
-    const hitId = hoveredRow?.id ?? hoveredStart;
+      !hoveredRow && s.selectedSongId !== null && hitTestRect(x, y, s.layout.startButton)
+        ? 'start'
+        : null;
+    const hoveredPause = !hoveredRow && hitTestRect(x, y, s.layout.pauseButton) ? 'pause' : null;
+    const hoveredResume = !hoveredRow && hitTestRect(x, y, s.layout.resumeButton) ? 'resume' : null;
+    const hoveredScrollUp =
+      !hoveredRow && s.layout.showScrollArrows && hitTestRect(x, y, s.layout.scrollUpButton)
+        ? 'scroll-up'
+        : null;
+    const hoveredScrollDown =
+      !hoveredRow && s.layout.showScrollArrows && hitTestRect(x, y, s.layout.scrollDownButton)
+        ? 'scroll-down'
+        : null;
+
+    let hitId: string | null = hoveredRow?.songId ?? hoveredStart ?? hoveredPause ?? hoveredResume ?? hoveredScrollUp ?? hoveredScrollDown;
+
+    // No in-row preview area anymore — selecting a row should both
+    // highlight it and start playback via onPreview.
 
     if (!hitId) {
       s.hoveredId = null;
@@ -112,8 +133,21 @@ export function useSongSelectNavigation(onStart: (songId: string) => void) {
     if (s.dwellProgress >= 1) {
       if (hitId === 'start') {
         onStart(s.selectedSongId!);
+      } else if (hitId === 'pause') {
+        onPreview?.('pause');
+      } else if (hitId === 'resume') {
+        onPreview?.('resume');
+      } else if (hitId === 'scroll-up') {
+        const maxIndex = Math.max(0, ids.length - s.layout.rows.length);
+        s.scrollIndex = Math.max(0, s.scrollIndex - 1);
+        if (s.scrollIndex > maxIndex) s.scrollIndex = maxIndex;
+      } else if (hitId === 'scroll-down') {
+        const maxIndex = Math.max(0, ids.length - s.layout.rows.length);
+        s.scrollIndex = Math.min(maxIndex, s.scrollIndex + 1);
       } else {
-        s.selectedSongId = hitId;
+        // song selection: set the selected id and request preview/start
+        s.selectedSongId = hitId as string;
+        onPreview?.(hitId as string);
       }
       s.dwellProgress = 0;
       // Rows deliberately DON'T get blocked/require-leave — re-confirming

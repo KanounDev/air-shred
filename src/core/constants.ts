@@ -31,6 +31,29 @@ export const POSE_CONFIRM_FRAMES = 4; // frames the SAME recognized pose must ho
 export const POSE_SMOOTHING_ALPHA = 0.4; // EMA smoothing on the live (post-normalization) feature vector
 export const POSE_CAPTURE_FRAMES = 20; // frames averaged together when recording each template sample
 
+// --- LEFT HAND buffer/neutral pose gate ----------------------------------
+// A second, tiny classifier (see core/classifier.ts — same class, just a
+// different template file) that recognizes ONE "neutral" pose (open hand
+// by convention, but whatever was recorded). Before a NEW note is allowed
+// to fire, the left hand must show a confident match against this gate,
+// held for BUFFER_CONFIRM_FRAMES — on top of (not instead of) the existing
+// "must leave the pose to re-fire it" debounce. This stops two visually-
+// similar notes from misfiring into each other during the brief
+// in-between transition.
+//
+// BUFFER_POSE_COUNT is 1 — this is ONE conceptual pose, recorded multiple
+// times (multiple samples under that same class) for natural-variation
+// tolerance, exactly like a note. If data/leftHandBuffer.ts ends up with
+// zero recorded samples, the gate auto-disables (see
+// HandPoseClassifier.isReady() + hooks/useGestureSound.ts), falling back
+// to the old "no gate" behavior — so this stays fully optional.
+export const BUFFER_POSE_COUNT = 1;
+export const BUFFER_LABELS = ['Neutral / open hand'];
+export const BUFFER_MAX_MATCH_DISTANCE = 0.9;
+export const BUFFER_MARGIN_RATIO = 0.97; // irrelevant with only 1 class today, kept for symmetry
+export const BUFFER_CONFIRM_FRAMES = 3; // shorter than POSE_CONFIRM_FRAMES on purpose — a quick
+// "did you pass through neutral" check, not a deliberate note selection.
+
 // --- Musical mapping ----------------------------------------------------
 export const NOTE_NAMES = [
   'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',

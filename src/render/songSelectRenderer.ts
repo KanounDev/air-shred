@@ -1,10 +1,4 @@
-import {
-  findSong,
-  formatTimeSpent,
-  getGlobalHighestScore,
-  getGlobalLowestTimeSpent,
-  SONGS,
-} from '../core/songLibrary';
+import { findSong, formatTimeSpent, getSongs } from '../core/songLibrary';
 import type { Rect } from '../core/songSelectLayout';
 import type { SongSelectNavState } from '../hooks/useSongSelectNavigation';
 
@@ -85,7 +79,7 @@ function drawClockIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, si
   ctx.restore();
 }
 
-function drawList(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
+function drawList(ctx: CanvasRenderingContext2D, nav: SongSelectNavState, songs: ReturnType<typeof getSongs>) {
   const { list, rows } = nav.layout;
 
   roundRect(ctx, list.x, list.y, list.w, list.h, 6);
@@ -97,9 +91,10 @@ function drawList(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const song = SONGS[i];
-    const isHovered = nav.hoveredId === row.id;
-    const isSelected = nav.selectedSongId === row.id;
+    const song = row.songId ? songs.find((s) => s.id === row.songId) : null;
+    if (!song) continue;
+    const isHovered = nav.hoveredId === row.songId;
+    const isSelected = nav.selectedSongId === row.songId;
 
     if (i > 0) {
       ctx.beginPath();
@@ -115,9 +110,6 @@ function drawList(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
       ctx.fillRect(row.x + 1, row.y + 1, row.w - 2, row.h - 2);
     }
 
-    // dwell progress: fills the row's background left-to-right, reads
-    // better for a wide list row than a circular ring (which is what the
-    // menu buttons use instead).
     if (isHovered && nav.dwellProgress > 0) {
       ctx.fillStyle = COL_ROW_HOVER_FILL;
       ctx.fillRect(row.x + 1, row.y + 1, (row.w - 2) * nav.dwellProgress, row.h - 2);
@@ -129,11 +121,32 @@ function drawList(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
       ctx.strokeRect(row.x + 1, row.y + 1, row.w - 2, row.h - 2);
     }
 
+    // Title and artist occupy the full row (fixed box). No in-row
+    // play/pause control — pause/resume are on the right-side controls.
+    const titleFontSize = Math.max(14, Math.round(row.h * 0.18));
+    const subtitleFontSize = Math.max(10, Math.round(row.h * 0.14));
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.font = `${isSelected ? '600 ' : ''}${Math.max(11, Math.round(row.h * 0.4))}px "JetBrains Mono", monospace`;
+    ctx.textBaseline = 'top';
+    ctx.font = `${isSelected ? '600 ' : ''}${titleFontSize}px "JetBrains Mono", monospace`;
     ctx.fillStyle = isSelected ? COL_ROW_SELECTED_BORDER : COL_ROW_LABEL;
-    ctx.fillText(song.title, row.x + 14, row.y + row.h / 2);
+    const titleX = row.x + 12;
+    const titleY = row.y + row.h * 0.18;
+    const titleMaxW = row.w - 24;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(titleX, titleY, titleMaxW, titleFontSize + 4);
+    ctx.clip();
+    ctx.fillText(song.title, titleX, titleY);
+    ctx.restore();
+
+    ctx.font = `${subtitleFontSize}px "JetBrains Mono", monospace`;
+    ctx.fillStyle = COL_SUBTITLE;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(titleX, row.y + row.h * 0.55, titleMaxW, subtitleFontSize + 4);
+    ctx.clip();
+    ctx.fillText(song.artist, titleX, row.y + row.h * 0.55);
+    ctx.restore();
   }
 }
 
@@ -152,30 +165,84 @@ function drawStatBox(
   ctx.stroke();
 
   const iconCx = rect.x + rect.w / 2;
-  const iconCy = rect.y + rect.h * 0.36;
-  const iconSize = Math.min(rect.w, rect.h) * 0.4;
+  const iconCy = rect.y + rect.h * 0.35;
+  const iconSize = Math.min(rect.w, rect.h) * 0.32;
   if (icon === 'trophy') drawTrophyIcon(ctx, iconCx, iconCy, iconSize);
   else drawClockIcon(ctx, iconCx, iconCy, iconSize);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `700 ${Math.max(13, Math.round(rect.h * 0.2))}px "JetBrains Mono", monospace`;
+  ctx.font = `700 ${Math.max(13, Math.round(rect.h * 0.18))}px "JetBrains Mono", monospace`;
   ctx.fillStyle = COL_STAT_VALUE;
-  ctx.fillText(value, iconCx, rect.y + rect.h * 0.78);
+  ctx.fillText(value, iconCx, rect.y + rect.h * 0.8);
 
-  ctx.font = `${Math.max(9, Math.round(rect.h * 0.11))}px "JetBrains Mono", monospace`;
+  ctx.font = `${Math.max(9, Math.round(rect.h * 0.12))}px "JetBrains Mono", monospace`;
   ctx.fillStyle = COL_STAT_LABEL;
-  ctx.fillText(label, iconCx, rect.y + rect.h * 0.92);
+  ctx.fillText(label, iconCx, rect.y + rect.h * 0.94);
 }
 
-function drawSectionLabel(ctx: CanvasRenderingContext2D, x: number, y: number, text: string) {
-  ctx.save();
+function drawButton(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  label: string,
+  active: boolean,
+  hovered: boolean,
+) {
+  roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 8);
+  ctx.fillStyle = COL_PANEL_BG;
+  ctx.fill();
+  ctx.strokeStyle = hovered ? COL_BTN_ENABLED_ACCENT : COL_PANEL_BORDER;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.font = `600 ${Math.max(10, Math.round(14))}px "JetBrains Mono", monospace`;
-  ctx.fillStyle = COL_SUBTITLE;
-  ctx.fillText(text, x, y);
-  ctx.restore();
+  ctx.textBaseline = 'middle';
+  ctx.font = `600 ${Math.round(rect.h * 0.32)}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = active ? COL_ICON : COL_ROW_LABEL;
+  if (!active) ctx.globalAlpha = 0.45;
+  ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h / 2);
+  if (!active) ctx.globalAlpha = 1;
+
+  if (hovered && active) {
+    ctx.beginPath();
+    ctx.arc(rect.x + rect.w / 2, rect.y + rect.h / 2, Math.min(rect.w, rect.h) * 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = COL_HOVER_RING_BG;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  }
+}
+
+function drawArrowButton(ctx: CanvasRenderingContext2D, rect: Rect, upward: boolean, enabled: boolean, hovered: boolean) {
+  roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 8);
+  ctx.fillStyle = COL_PANEL_BG;
+  ctx.fill();
+  ctx.strokeStyle = hovered ? COL_BTN_ENABLED_ACCENT : COL_PANEL_BORDER;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  const size = Math.min(rect.w, rect.h) * 0.4;
+  ctx.beginPath();
+  if (upward) {
+    ctx.moveTo(cx, cy - size);
+    ctx.lineTo(cx - size * 0.75, cy + size * 0.45);
+    ctx.lineTo(cx + size * 0.75, cy + size * 0.45);
+  } else {
+    ctx.moveTo(cx, cy + size);
+    ctx.lineTo(cx - size * 0.75, cy - size * 0.45);
+    ctx.lineTo(cx + size * 0.75, cy - size * 0.45);
+  }
+  ctx.closePath();
+  ctx.fillStyle = enabled ? COL_ICON : 'rgba(236,232,223,0.35)';
+  ctx.fill();
+
+  if (!enabled) {
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = 'rgba(236,232,223,0.35)';
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawStartButton(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
@@ -216,6 +283,28 @@ function drawStartButton(ctx: CanvasRenderingContext2D, nav: SongSelectNavState)
   ctx.fillText('START', cx, cy);
 
   ctx.restore();
+}
+
+function drawControlButtons(ctx: CanvasRenderingContext2D, nav: SongSelectNavState, previewingId: string | null, previewPaused: boolean) {
+  const pauseHovered = nav.hoveredId === 'pause';
+  const resumeHovered = nav.hoveredId === 'resume';
+  const pauseActive = Boolean(previewingId && !previewPaused);
+  const resumeActive = Boolean(previewingId && previewPaused);
+
+  drawButton(ctx, nav.layout.pauseButton, 'PAUSE', pauseActive, pauseHovered);
+  drawButton(ctx, nav.layout.resumeButton, 'RESUME', resumeActive, resumeHovered);
+}
+
+function drawScrollButtons(ctx: CanvasRenderingContext2D, nav: SongSelectNavState, totalSongs: number) {
+  if (!nav.layout.showScrollArrows) return;
+
+  const canScrollUp = nav.scrollIndex > 0;
+  const canScrollDown = nav.scrollIndex + nav.layout.rows.length < totalSongs;
+  const scrollUpHovered = nav.hoveredId === 'scroll-up';
+  const scrollDownHovered = nav.hoveredId === 'scroll-down';
+
+  drawArrowButton(ctx, nav.layout.scrollUpButton, true, canScrollUp, scrollUpHovered);
+  drawArrowButton(ctx, nav.layout.scrollDownButton, false, canScrollDown, scrollDownHovered);
 }
 
 function drawCursor(ctx: CanvasRenderingContext2D, nav: SongSelectNavState) {
@@ -261,6 +350,8 @@ export function drawSongSelect(
   width: number,
   height: number,
   nav: SongSelectNavState,
+  previewingId: string | null,
+  previewPaused: boolean,
 ): void {
   ctx.clearRect(0, 0, width, height);
 
@@ -275,29 +366,13 @@ export function drawSongSelect(
   ctx.fillStyle = COL_SUBTITLE;
   ctx.fillText('POINT WITH YOUR RIGHT INDEX FINGER · HOLD TO CHOOSE', width / 2, height * 0.13);
 
-  drawList(ctx, nav);
+  const songs = getSongs();
+  drawList(ctx, nav, songs);
+  drawScrollButtons(ctx, nav, songs.length);
+  drawControlButtons(ctx, nav, previewingId, previewPaused);
 
   const selected = findSong(nav.selectedSongId);
   if (selected) {
-    const rightCenter = nav.layout.globalScoreBox.x + ((nav.layout.globalTimeBox.x + nav.layout.globalTimeBox.w) - nav.layout.globalScoreBox.x) / 2;
-    const labelOffset = Math.max(10, Math.round(height * 0.02));
-    drawSectionLabel(ctx, rightCenter, nav.layout.globalScoreBox.y - labelOffset, 'GLOBAL STATS');
-    drawSectionLabel(ctx, rightCenter, nav.layout.scoreBox.y - labelOffset, 'YOUR STATS');
-
-    drawStatBox(
-      ctx,
-      nav.layout.globalScoreBox,
-      'trophy',
-      'GLOBAL HIGHEST SCORE',
-      String(getGlobalHighestScore()),
-    );
-    drawStatBox(
-      ctx,
-      nav.layout.globalTimeBox,
-      'clock',
-      'GLOBAL LOWEST TIME',
-      formatTimeSpent(getGlobalLowestTimeSpent()),
-    );
     drawStatBox(ctx, nav.layout.scoreBox, 'trophy', 'HIGHEST SCORE', String(selected.highestScore));
     drawStatBox(ctx, nav.layout.timeBox, 'clock', 'TIME SPENT', formatTimeSpent(selected.timeSpentSec));
     drawStartButton(ctx, nav);
