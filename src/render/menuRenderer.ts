@@ -132,7 +132,7 @@ export function drawMenu(
   ctx.fillStyle = COL_TITLE;
   ctx.shadowColor = COL_TITLE_GLOW;
   ctx.shadowBlur = 16;
-  ctx.fillText('TWO-HANDED VIRTUAL SYNTH', width / 2, height * 0.22);
+  ctx.fillText('AirShred', width / 2, height * 0.22);
   ctx.shadowBlur = 0;
 
   ctx.font = `${Math.max(11, Math.round(height * 0.026))}px "JetBrains Mono", monospace`;
