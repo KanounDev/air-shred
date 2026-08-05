@@ -1,4 +1,3 @@
-
 import C_img from '../images/C.png';
 import CSharp_img from '../images/CSharp.png';
 import D_img from '../images/D.png';
@@ -15,64 +14,36 @@ import octave1_img from '../images/otcave1.png';
 import octave2_img from '../images/octave2.png';
 import octave3_img from '../images/octave3.png';
 import octave4_img from '../images/octave4.png';
-
 interface PoseTile {
-  label: string;
-  imageSrc?: string;
+    label: string;
+    imageSrc?: string;
 }
-
 const LEFT_POSES: PoseTile[] = [
-  { label: 'C', imageSrc: C_img },
-  { label: 'C#', imageSrc: CSharp_img },
-  { label: 'D', imageSrc: D_img },
-  { label: 'D#', imageSrc: DSharp_img },
-  { label: 'E', imageSrc: E_img },
-  { label: 'F', imageSrc: F_img },
-  { label: 'F#', imageSrc: FSharp_img },
-  { label: 'G', imageSrc: G_img },
-  { label: 'G#', imageSrc: GSharp_img },
-  { label: 'A', imageSrc: A_img },
-  { label: 'A#', imageSrc: ASharp_img },
-  { label: 'B', imageSrc: B_img },
+    { label: 'C', imageSrc: C_img },
+    { label: 'C#', imageSrc: CSharp_img },
+    { label: 'D', imageSrc: D_img },
+    { label: 'D#', imageSrc: DSharp_img },
+    { label: 'E', imageSrc: E_img },
+    { label: 'F', imageSrc: F_img },
+    { label: 'F#', imageSrc: FSharp_img },
+    { label: 'G', imageSrc: G_img },
+    { label: 'G#', imageSrc: GSharp_img },
+    { label: 'A', imageSrc: A_img },
+    { label: 'A#', imageSrc: ASharp_img },
+    { label: 'B', imageSrc: B_img },
 ];
-
 const RIGHT_POSES: PoseTile[] = [
-  { label: 'octave 1', imageSrc: octave1_img },
-  { label: 'octave 2', imageSrc: octave2_img },
-  { label: 'octave 3', imageSrc: octave3_img },
-  { label: 'octave 4', imageSrc: octave4_img },
+    { label: 'octave 1', imageSrc: octave1_img },
+    { label: 'octave 2', imageSrc: octave2_img },
+    { label: 'octave 3', imageSrc: octave3_img },
+    { label: 'octave 4', imageSrc: octave4_img },
 ];
-
 interface Props {
-  onClose: () => void;
+    onClose: () => void;
 }
-
-/**
- * Popup shown on top of the camera stage instead of a separate route/screen.
- * Rendered as a sibling of CameraCanvas inside .stage-wrap (see App.tsx), so
- * the camera feed and its HUD keep running underneath it — only the menu
- * buttons are hidden while this is open (App.tsx skips rendering
- * MenuOverlay whenever this is open).
- *
- * Closing is keyboard-only (Esc, handled centrally in App.tsx) to match the
- * rest of the app's "hands drive the UI, keyboard is the escape hatch"
- * pattern — clicking the backdrop or the ✕ are just convenience extras for
- * anyone using a mouse.
- */
 export function TutorialModal({ onClose }: Props) {
-  return (
-    <div
-      className="tutorial-modal-backdrop"
-      onClick={onClose}
-      role="presentation"
-    >
-      <section
-        className="tutorial-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Hand pose tutorial"
-        onClick={(e) => e.stopPropagation()}
-      >
+    return (<div className="tutorial-modal-backdrop" onClick={onClose} role="presentation">
+      <section className="tutorial-modal" role="dialog" aria-modal="true" aria-label="Hand pose tutorial" onClick={(e) => e.stopPropagation()}>
         <div className="tutorial-panels">
           <section className="tutorial-hand-panel">
             <div className="tutorial-panel-header">
@@ -80,22 +51,12 @@ export function TutorialModal({ onClose }: Props) {
               <span>12 notes</span>
             </div>
             <div className="tutorial-pose-grid left-hand">
-              {LEFT_POSES.map((pose, i) => (
-                <article key={`${pose.label}-${i}`} className="tutorial-pose-card">
+              {LEFT_POSES.map((pose, i) => (<article key={`${pose.label}-${i}`} className="tutorial-pose-card">
                   <div className="tutorial-pose-frame">
-                    {pose.imageSrc ? (
-                      <img
-                        className="tutorial-pose-image"
-                        src={pose.imageSrc}
-                        alt={`Left hand pose ${pose.label}`}
-                      />
-                    ) : (
-                      <div className="tutorial-pose-placeholder" aria-hidden="true" />
-                    )}
+                    {pose.imageSrc ? (<img className="tutorial-pose-image" src={pose.imageSrc} alt={`Left hand pose ${pose.label}`}/>) : (<div className="tutorial-pose-placeholder" aria-hidden="true"/>)}
                   </div>
                   <p className="tutorial-pose-label">{pose.label}</p>
-                </article>
-              ))}
+                </article>))}
             </div>
           </section>
 
@@ -105,26 +66,15 @@ export function TutorialModal({ onClose }: Props) {
               <span>4 octaves</span>
             </div>
             <div className="tutorial-pose-grid right-hand">
-              {RIGHT_POSES.map((pose, i) => (
-                <article key={`${pose.label}-${i}`} className="tutorial-pose-card">
+              {RIGHT_POSES.map((pose, i) => (<article key={`${pose.label}-${i}`} className="tutorial-pose-card">
                   <div className="tutorial-pose-frame">
-                    {pose.imageSrc ? (
-                      <img
-                        className="tutorial-pose-image"
-                        src={pose.imageSrc}
-                        alt={`Right hand pose ${pose.label}`}
-                      />
-                    ) : (
-                      <div className="tutorial-pose-placeholder" aria-hidden="true" />
-                    )}
+                    {pose.imageSrc ? (<img className="tutorial-pose-image" src={pose.imageSrc} alt={`Right hand pose ${pose.label}`}/>) : (<div className="tutorial-pose-placeholder" aria-hidden="true"/>)}
                   </div>
                   <p className="tutorial-pose-label">{pose.label}</p>
-                </article>
-              ))}
+                </article>))}
             </div>
           </section>
         </div>
       </section>
-    </div>
-  );
+    </div>);
 }

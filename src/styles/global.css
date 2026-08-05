@@ -1,12 +1,4 @@
-/* =========================================================================
-   DESIGN TOKENS
-   Palette: warm-black stage (#0b0a09 / #141210), CV-HUD neon green
-   (#39ff8f) for the note/left-hand channel, amber (#ffb020) for the
-   octave/right-hand channel, and a low, smoldering red (#ff2f3a) used only
-   for accents/glow — the "metal gig" half of the brief — never as body text.
-   Display face: Metal Mania (a real metal-poster face) used sparingly for
-   the title only. Everything else is JetBrains Mono, terminal-style.
-   ========================================================================= */
+
 
 :root {
     --bg-void: #0b0a09;
@@ -55,7 +47,7 @@ body {
 }
 
 
-/* ---- header -------------------------------------------------------- */
+
 
 .app-header {
     text-align: center;
@@ -91,7 +83,7 @@ body {
 }
 
 
-/* ---- tutorial page --------------------------------------------------- */
+
 
 .tutorial-wrap {
     width: 100%;
@@ -234,7 +226,7 @@ body {
 }
 
 
-/* ---- stage (camera + overlays) -------------------------------------- */
+
 
 .stage-wrap {
     position: relative;
@@ -300,7 +292,7 @@ body {
 }
 
 
-/* CV-HUD scanline texture, purely decorative */
+
 
 .scanlines {
     position: absolute;
@@ -312,7 +304,7 @@ body {
 }
 
 
-/* CV-HUD corner brackets, like a targeting overlay */
+
 
 .corner {
     position: absolute;
@@ -353,7 +345,7 @@ body {
 }
 
 
-/* ---- start / loading / error gate ----------------------------------- */
+
 
 .stage-gate {
     position: absolute;
@@ -404,7 +396,7 @@ body {
 }
 
 
-/* ---- status bar ------------------------------------------------------ */
+
 
 .status-bar {
     position: absolute;
@@ -460,7 +452,7 @@ body {
 }
 
 
-/* ---- piano strip (lives below the camera stage, not overlaid on it) --- */
+
 
 .piano-wrap {
     width: min(960px, 94vw);
@@ -498,7 +490,7 @@ body {
 }
 
 
-/* ---- settings / pose-calibration page ---------------------------------- */
+
 
 .settings-page {
     width: min(720px, 94vw);
@@ -719,7 +711,7 @@ body {
 }
 
 
-/* ---- reduced motion --------------------------------------------------- */
+
 
 @media (prefers-reduced-motion: reduce) {
     .app-title-cursor {
@@ -729,7 +721,7 @@ body {
 }
 
 
-/* ---- small screens ----------------------------------------------------- */
+
 
 @media (max-width: 520px) {
     .status-bar {
