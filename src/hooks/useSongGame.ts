@@ -70,6 +70,7 @@ export function useSongGame() {
             return;
         const expected = state.currentTarget;
         const matches = noteIndex === expected.noteIndex && octave === expected.octave;
+        // The score only increments on the first correct hit for a target, which avoids double-counting repeated notes.
         if (matches && !state.currentTargetMatched) {
             state.score += 1;
             state.currentTargetMatched = true;
@@ -98,6 +99,7 @@ export function useSongGame() {
             return;
         }
         const targetEnd = state.currentTarget.time + state.currentTarget.duration + 200;
+        // The extra 200 ms gives the player a small grace window before the target is considered missed.
         if (state.elapsedMs >= targetEnd) {
             if (state.currentTargetMatched) {
                 state.activeNoteIndex += 1;

@@ -9,6 +9,7 @@ interface Props {
     onStart: () => void;
 }
 export function CameraCanvas({ videoRef, canvasRef, status, error, onStart }: Props) {
+    // The overlay is intentionally split from the video element so the camera can stay hidden while the canvas draws the UI.
     return (<div className="stage" style={{ aspectRatio: `${FRAME_W} / ${FRAME_H}` }}>
       <video ref={videoRef} className="hidden-video" muted playsInline/>
       <canvas ref={canvasRef} className="camera-canvas" width={FRAME_W} height={FRAME_H}/>

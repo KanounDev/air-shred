@@ -1,3 +1,4 @@
+// Euclidean distance is used as a simple pose similarity metric because these vectors are already normalized and centered.
 export type Vec2 = [
     number,
     number

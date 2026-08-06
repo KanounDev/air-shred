@@ -9,6 +9,7 @@ export function drawMirroredFrame(ctx: CanvasRenderingContext2D, video: HTMLVide
     ctx.restore();
 }
 function drawHandSkeleton(ctx: CanvasRenderingContext2D, landmarks: LandmarkLike[], width: number, height: number, color: string): void {
+    // Rendering each joint as a point makes the skeleton readable even when the hand tracker is a little noisy.
     const pts = landmarks.map((lm) => [lm.x * width, lm.y * height] as const);
     ctx.save();
     ctx.strokeStyle = color;

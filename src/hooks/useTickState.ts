@@ -5,6 +5,7 @@ export function useTickState<T>(ref: React.MutableRefObject<T>, everyMs = 80): T
     const lastRef = useRef(0);
     useEffect(() => {
         const step = (t: number) => {
+            // This throttles UI snapshots so the overlay does not re-render on every animation frame.
             if (t - lastRef.current >= everyMs) {
                 lastRef.current = t;
                 setSnapshot({ ...ref.current });

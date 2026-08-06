@@ -1,5 +1,6 @@
 import { NOTE_NAMES, OCTAVE_COUNT, BUFFER_POSE_COUNT } from './constants';
 import { LEFT_HAND_POSE_TEMPLATES } from '../data/leftHandPoses';
+// Local overrides are accepted only when they match the expected feature shape, so bad persisted data cannot silently break the classifier.
 import { RIGHT_HAND_OCTAVE_TEMPLATES } from '../data/rightHandOctaves';
 import { LEFT_HAND_BUFFER_TEMPLATES } from '../data/leftHandBuffer';
 export type PoseTemplates = number[][][];

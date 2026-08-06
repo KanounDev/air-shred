@@ -1,3 +1,4 @@
+// MIDI parsing is kept local so the app can load chart data from either JSON or a binary MIDI file without extra dependencies.
 export interface ChartNote {
     time: number;
     duration: number;

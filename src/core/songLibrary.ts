@@ -1,3 +1,4 @@
+// Song metadata is persisted separately from the runtime chart so the UI can keep progress without reloading the full song list.
 export interface SongDef {
     id: string;
     title: string;

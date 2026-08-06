@@ -1,5 +1,6 @@
 import { WRIST, MIDDLE_MCP } from './constants';
 import type { Vec2 } from './geometry';
+// The hand is normalized around the wrist and scaled by the middle finger to make the classifier robust to camera distance.
 export interface LandmarkLike {
     x: number;
     y: number;

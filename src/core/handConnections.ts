@@ -1,3 +1,4 @@
+// This is the MediaPipe hand skeleton map, reused to draw the same joints the model predicts.
 export const HAND_CONNECTIONS: ReadonlyArray<readonly [
     number,
     number

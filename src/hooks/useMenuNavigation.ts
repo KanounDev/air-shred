@@ -43,6 +43,7 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
             return;
         }
         const tip = frame.right?.[INDEX_FINGER_TIP];
+        // The menu uses the right index finger as a cursor because it is the least ambiguous pointer for this interaction.
         if (!tip) {
             s.cursor = null;
             s.hoveredId = null;
@@ -75,6 +76,7 @@ export function useMenuNavigation(onSelect: (id: string) => void) {
             s.dwellProgress = Math.min(1, s.dwellProgress + dt / MENU_DWELL_MS);
         }
         if (s.dwellProgress >= 1) {
+            // A full dwell interval is treated as a deliberate selection rather than a transient hover.
             if (hit.enabled) {
                 onSelect(hit.id);
             }

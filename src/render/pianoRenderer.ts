@@ -16,6 +16,7 @@ const COL_OCTAVE_LABEL = 'rgba(255, 255, 255, 0.35)';
 const COL_MORE_HINT = 'rgba(255, 255, 255, 0.28)';
 const WHITE_PER_OCTAVE = PIANO_WHITE_SEMITONES.length;
 function computeVisibleWindow(canvasWidthPx: number, activeOctaveSelect: number) {
+    // The visible octave window is clamped to the canvas width so the keyboard stays readable on smaller screens.
     const maxOctavesThatFit = Math.floor(canvasWidthPx / (PIANO_MIN_WHITE_KEY_PX * WHITE_PER_OCTAVE));
     const count = Math.min(OCTAVE_COUNT, Math.max(1, maxOctavesThatFit));
     const activeIdx = activeOctaveSelect - 1;

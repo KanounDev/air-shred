@@ -64,6 +64,7 @@ function drawButton(ctx: CanvasRenderingContext2D, btn: MenuButtonRect, nav: Men
     ctx.restore();
 }
 function drawCursor(ctx: CanvasRenderingContext2D, nav: MenuNavState) {
+    // The cursor is intentionally simple; it provides a pointer without competing with the menu's neon glow.
     if (!nav.cursor)
         return;
     const { x, y } = nav.cursor;

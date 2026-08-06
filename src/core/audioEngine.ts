@@ -1,5 +1,6 @@
 import * as Tone from 'tone';
 import { noteToFreq } from './noteMath';
+// A small voice pool keeps rapid note repeats smooth without allocating new synths at every hit.
 const VOICE_POOL_SIZE = 6;
 export class AudioEngine {
     private readonly voices: Tone.PluckSynth[] = [];

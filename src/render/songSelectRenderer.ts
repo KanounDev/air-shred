@@ -71,6 +71,7 @@ function drawClockIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, si
     ctx.restore();
 }
 function drawList(ctx: CanvasRenderingContext2D, nav: SongSelectNavState, songs: ReturnType<typeof getSongs>) {
+    // Rows are clipped to the panel so long titles do not bleed into neighboring UI elements.
     const { list, rows } = nav.layout;
     roundRect(ctx, list.x, list.y, list.w, list.h, 6);
     ctx.fillStyle = COL_PANEL_BG;

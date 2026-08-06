@@ -45,6 +45,7 @@ export function useSongSelectNavigation(onStart: (songId: string) => void, onPre
             return;
         }
         const tip = frame.right?.[INDEX_FINGER_TIP];
+        // The song-select UI mirrors the menu interaction model so the same pointer gesture can select and preview songs.
         if (!tip) {
             s.cursor = null;
             s.hoveredId = null;

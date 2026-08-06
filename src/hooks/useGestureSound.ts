@@ -79,6 +79,7 @@ export function useGestureSound() {
             const L = left.current;
             L.ema = ema(L.ema, raw, POSE_SMOOTHING_ALPHA);
             const bufferClassifier = bufferClassifierRef.current!;
+            // The neutral-pose gate is only active when a buffer template exists; otherwise the instrument should stay responsive.
             const gateEnabled = bufferClassifier.isReady();
             if (gateEnabled) {
                 const { index: bufIdx } = bufferClassifier.classify(L.ema);
@@ -108,6 +109,7 @@ export function useGestureSound() {
                 L.pendingCount = 1;
             }
             if (noteIdx === null) {
+                // A null match clears the pending note so a stray pose does not carry over into the next frame.
                 L.lastFiredNote = null;
             }
             else if (L.pendingCount >= POSE_CONFIRM_FRAMES && L.pendingNote !== L.lastFiredNote && L.armed) {
@@ -135,6 +137,7 @@ export function useGestureSound() {
                 R.pendingCount = 1;
             }
             if (octIdx !== null && R.pendingCount >= POSE_CONFIRM_FRAMES) {
+                // The octave selection is offset by one because the templates are zero-based while the UI labels start at 1.
                 s.activeOctave = octIdx + 1;
             }
         }

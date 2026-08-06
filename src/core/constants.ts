@@ -1,3 +1,4 @@
+// These values define the fixed camera/rendering surface and the thresholds that keep pose tracking responsive.
 export const FRAME_W = 960;
 export const FRAME_H = 540;
 export const REQUEST_FPS = 60;

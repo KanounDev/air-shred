@@ -1,4 +1,5 @@
 import { euclidean } from './geometry';
+// The classifier only accepts a pose when it is clearly better than the runner-up, which avoids flapping between similar hand shapes.
 export interface ClassifyResult {
     index: number | null;
     distance: number | null;
