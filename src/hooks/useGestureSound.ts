@@ -3,7 +3,9 @@ import { AudioEngine } from '../core/audioEngine';
 import { HandPoseClassifier } from '../core/classifier';
 import { BUFFER_CONFIRM_FRAMES, BUFFER_MARGIN_RATIO, BUFFER_MAX_MATCH_DISTANCE, NOTE_NAMES, OCTAVE_BASE, POSE_CONFIRM_FRAMES, POSE_MARGIN_RATIO, POSE_MAX_MATCH_DISTANCE, POSE_SMOOTHING_ALPHA, FRAME_H, FRAME_W, } from '../core/constants';
 import { extractPoseFeatures } from '../core/poseFeatures';
-import { loadLeftHandBufferTemplates, loadLeftHandTemplates, loadRightHandTemplates } from '../core/poseStore';
+import { LEFT_HAND_BUFFER_TEMPLATES } from '../data/leftHandBuffer';
+import { LEFT_HAND_POSE_TEMPLATES } from '../data/leftHandPoses';
+import { RIGHT_HAND_OCTAVE_TEMPLATES } from '../data/rightHandOctaves';
 import type { HandFrameResult } from './useHandTracking';
 export interface GestureState {
     activeOctave: number;
@@ -43,18 +45,18 @@ export function useGestureSound() {
     const octaveClassifierRef = useRef<HandPoseClassifier | null>(null);
     const bufferClassifierRef = useRef<HandPoseClassifier | null>(null);
     if (!poseClassifierRef.current) {
-        poseClassifierRef.current = new HandPoseClassifier(loadLeftHandTemplates(), POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
+        poseClassifierRef.current = new HandPoseClassifier(LEFT_HAND_POSE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
     }
     if (!octaveClassifierRef.current) {
-        octaveClassifierRef.current = new HandPoseClassifier(loadRightHandTemplates(), POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
+        octaveClassifierRef.current = new HandPoseClassifier(RIGHT_HAND_OCTAVE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
     }
     if (!bufferClassifierRef.current) {
-        bufferClassifierRef.current = new HandPoseClassifier(loadLeftHandBufferTemplates(), BUFFER_MAX_MATCH_DISTANCE, BUFFER_MARGIN_RATIO);
+        bufferClassifierRef.current = new HandPoseClassifier(LEFT_HAND_BUFFER_TEMPLATES, BUFFER_MAX_MATCH_DISTANCE, BUFFER_MARGIN_RATIO);
     }
     const reloadTemplates = useCallback(() => {
-        poseClassifierRef.current = new HandPoseClassifier(loadLeftHandTemplates(), POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
-        octaveClassifierRef.current = new HandPoseClassifier(loadRightHandTemplates(), POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
-        bufferClassifierRef.current = new HandPoseClassifier(loadLeftHandBufferTemplates(), BUFFER_MAX_MATCH_DISTANCE, BUFFER_MARGIN_RATIO);
+        poseClassifierRef.current = new HandPoseClassifier(LEFT_HAND_POSE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
+        octaveClassifierRef.current = new HandPoseClassifier(RIGHT_HAND_OCTAVE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
+        bufferClassifierRef.current = new HandPoseClassifier(LEFT_HAND_BUFFER_TEMPLATES, BUFFER_MAX_MATCH_DISTANCE, BUFFER_MARGIN_RATIO);
     }, []);
     const audioEngine = useMemo(() => new AudioEngine(), []);
     const stateRef = useRef<GestureState>(initialState());
