@@ -44,15 +44,7 @@ export function useGestureSound() {
     const poseClassifierRef = useRef<HandPoseClassifier | null>(null);
     const octaveClassifierRef = useRef<HandPoseClassifier | null>(null);
     const bufferClassifierRef = useRef<HandPoseClassifier | null>(null);
-    if (!poseClassifierRef.current) {
-        poseClassifierRef.current = new HandPoseClassifier(LEFT_HAND_POSE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
-    }
-    if (!octaveClassifierRef.current) {
-        octaveClassifierRef.current = new HandPoseClassifier(RIGHT_HAND_OCTAVE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
-    }
-    if (!bufferClassifierRef.current) {
-        bufferClassifierRef.current = new HandPoseClassifier(LEFT_HAND_BUFFER_TEMPLATES, BUFFER_MAX_MATCH_DISTANCE, BUFFER_MARGIN_RATIO);
-    }
+   
     const reloadTemplates = useCallback(() => {
         poseClassifierRef.current = new HandPoseClassifier(LEFT_HAND_POSE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
         octaveClassifierRef.current = new HandPoseClassifier(RIGHT_HAND_OCTAVE_TEMPLATES, POSE_MAX_MATCH_DISTANCE, POSE_MARGIN_RATIO);
