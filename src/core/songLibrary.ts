@@ -29,6 +29,38 @@ const BASE_SONGS: SongDef[] = [
         highestScore: 0,
         timeSpentSec: 0,
     },
+    {
+        id: 'rondo-alla-turca',
+        title: 'Rondo alla Turca',
+        artist: 'Wolfgang Amadeus Mozart',
+        chartUrl: '/songs/rondo-alla-turca/rondo-alla-turca.mid',
+        highestScore: 0,
+        timeSpentSec: 0,
+    },
+    {
+        id: 'swan-lake',
+        title: 'Swan Lake',
+        artist: 'Pyotr Ilyich Tchaikovsky',
+        chartUrl: '/songs/swan-lake/Pyotr Ilyich Tchaikovsky - Swan Lake.mid',
+        highestScore: 0,
+        timeSpentSec: 0,
+    },
+    {
+        id: 'symphony-no-40',
+        title: 'Symphony No. 40',
+        artist: 'Wolfgang Amadeus Mozart',
+        chartUrl: '/songs/symphony-no-40/By Wolfgang Amadeus Mozart - Symphony No. 40_right_hand_monophonic.mid',
+        highestScore: 0,
+        timeSpentSec: 0,
+    },
+    {
+        id: 'the-blue-danube',
+        title: 'The Blue Danube Waltz',
+        artist: 'Johann Strauss II',
+        chartUrl: '/songs/the-blue-danube/Johann Strauss - The Blue Danube Waltz.mid',
+        highestScore: 0,
+        timeSpentSec: 0,
+    },
 ];
 function loadPersistentStats(): Record<string, PersistentSongStats> {
     try {
