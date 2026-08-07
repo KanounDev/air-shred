@@ -22,7 +22,7 @@ export function CameraCanvas({ videoRef, canvasRef, status, error, onStart }: Pr
 
       {status !== 'ready' && (<div className="stage-gate">
           {status === 'idle' && (<button className="btn-start" onClick={onStart}>
-              &gt; INITIALIZE_RIG
+              &gt; START CAMERA & AUDIO
             </button>)}
           {status === 'loading' && <p className="gate-msg">loading model + camera&hellip;</p>}
           {status === 'error' && (<>
