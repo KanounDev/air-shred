@@ -27,9 +27,10 @@ export default function App() {
         setScreen('training');
     }, [reloadTemplates]);
     const enterSongSelect = useCallback(() => {
+        resetSongSelectNav();
         screenRef.current = 'songSelect';
         setScreen('songSelect');
-    }, []);
+    }, [resetSongSelectNav]);
     const openTutorial = useCallback(() => {
         tutorialOpenRef.current = true;
         setTutorialOpen(true);
