@@ -20,6 +20,7 @@ export default function App() {
     const screenRef = useRef<Screen>('menu');
     const [tutorialOpen, setTutorialOpen] = useState(false);
     const tutorialOpenRef = useRef(false);
+    const resetSongSelectNavRef = useRef<() => void>(() => {});
     const { stateRef: gestureStateRef, processFrame: processGestureFrame, audioEngine, reloadTemplates } = useGestureSound();
     const enterTraining = useCallback(() => {
         reloadTemplates();
@@ -27,10 +28,10 @@ export default function App() {
         setScreen('training');
     }, [reloadTemplates]);
     const enterSongSelect = useCallback(() => {
-        resetSongSelectNav();
+        resetSongSelectNavRef.current();
         screenRef.current = 'songSelect';
         setScreen('songSelect');
-    }, [resetSongSelectNav]);
+    }, []);
     const openTutorial = useCallback(() => {
         tutorialOpenRef.current = true;
         setTutorialOpen(true);
@@ -165,6 +166,7 @@ export default function App() {
         startPreview(actionId);
     }, [pausePreview, resumePreview, startPreview]);
     const { stateRef: songSelectNavStateRef, processFrame: processSongSelectFrame, reset: resetSongSelectNav, } = useSongSelectNavigation(handleStartSong, handlePreview);
+    resetSongSelectNavRef.current = resetSongSelectNav;
     const playedGesture = useTickState(gestureStateRef, 40);
     const closeTutorial = useCallback(() => {
         tutorialOpenRef.current = false;
